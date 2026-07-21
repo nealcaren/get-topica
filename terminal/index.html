@@ -331,7 +331,7 @@
         txt.textContent += s[i];
         atBottom();
         await sleep(warm ? (16 + Math.random()*46 + (s[i]===" "?8:0))
-                         : (2 + Math.random()*8 + (s[i]===" "?3:0)));
+                         : (3 + Math.random()*10 + (s[i]===" "?4:0)));
       }
       typedCount++;
     } else if(line.html){
@@ -365,8 +365,8 @@
       await typeLine(line, tok);
       if(tok!==token) return;
       if(!reduce && !fast){
-        var base = TYPED[line.c] ? (typedCount < 4 ? 210 : 45) : 30;
-        await sleep(base + (line.pause||0) + Math.random()*(typedCount < 4 ? 90 : 40));
+        var base = TYPED[line.c] ? (typedCount < 4 ? 210 : 55) : 35;
+        await sleep(base + (line.pause||0) + Math.random()*(typedCount < 4 ? 90 : 42));
       }
     }
   }
