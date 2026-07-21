@@ -236,10 +236,23 @@
     {c:"res", t:"7", pause:300},
     {c:"gap"},
 
-    {c:"cmt", t:"# 6 · unstable across runs? ensemble many fits into a consensus"},
-    {c:"py",  t:"ens = topica.Ensemble(base=topica.LDA, num_topics=7, n_runs=25, seed=42)"},
-    {c:"py",  t:"ens.fit(corpus)", tail:"   # 25 runs, matched & averaged"},
-    {c:"py",  t:"topica.plot_stability(ens)", tail:"   # per-topic agreement"},
+    {c:"cmt", t:"# 6 · what happens as k grows — do topics split, or stay put?"},
+    {c:"py",  t:"topica.compare_k(corpus, k=5, to=7)", tail:"   # map topics 5 → 7"},
+    {c:"fig", pause:220, html:true, t:'  immigration     <span class="ax">───►</span>  immigration         <span class="ax">stable</span>'},
+    {c:"fig", html:true, t:'  jobs economy    <span class="ax">───►</span>  jobs · economy      <span class="ax">stable</span>'},
+    {c:"fig", html:true, t:'  law border      <span class="mk">──┬►</span>  law · policy        <span class="mk">split</span>'},
+    {c:"fig", html:true, t:'                    <span class="mk">└►</span>  border · deport     <span class="mk">+ new</span>'},
+    {c:"fig", html:true, t:'  people          <span class="ax">───►</span>  people · country    <span class="ax">stable</span>'},
+    {c:"fig", html:true, t:'  family          <span class="mk">──┬►</span>  children · school   <span class="mk">split</span>'},
+    {c:"fig", html:true, t:'                    <span class="mk">└►</span>  family · home       <span class="mk">+ new</span>'},
+    {c:"cmt", t:"#  3 topics carry straight over · 2 split as k goes 5 → 7"},
+    {c:"gap"},
+
+    {c:"cmt", t:"# 7 · ensemble across model families — pool them into one consensus"},
+    {c:"py",  t:"ens = topica.Ensemble(models=[topica.LDA, topica.NMF, topica.CTM],"},
+    {c:"pyc", t:"                      num_topics=7, runs=30, seed=42)"},
+    {c:"py",  t:"ens.fit(corpus)", tail:"   # 3 families × 30 runs, matched & averaged"},
+    {c:"py",  t:"topica.plot_stability(ens)", tail:"   # agreement across all fits"},
     {c:"fig", pause:200, html:true, t:'  0  immigration    <span class="bar-f">████████████████████</span>  0.94'},
     {c:"fig", html:true, t:'  1  jobs economy   <span class="bar-f">██████████████████</span><span class="bar-e">░░</span>  0.88'},
     {c:"fig", html:true, t:'  2  border law     <span class="bar-f">█████████████████</span><span class="bar-e">░░░</span>  0.85'},
@@ -247,10 +260,10 @@
     {c:"fig", html:true, t:'  4  people country <span class="bar-f">███████████████</span><span class="bar-e">░░░░░</span>  0.76'},
     {c:"fig", html:true, t:'  5  english        <span class="bar-f">██████████████</span><span class="bar-e">░░░░░░</span>  0.71'},
     {c:"fig", html:true, t:'  6  taxes welfare  <span class="bar-f">████████████</span><span class="bar-e">░░░░░░░░</span>  0.63'},
-    {c:"cmt", t:"#  topic stability = mean pairwise agreement across 25 runs"},
+    {c:"cmt", t:"#  topic stability = mean agreement across 3 model families"},
     {c:"gap"},
 
-    {c:"cmt", t:"# 7 · scale documents on a latent dimension — text ideal points"},
+    {c:"cmt", t:"# 8 · scale documents on a latent dimension — text ideal points"},
     {c:"py",  t:"wf = topica.Wordfish(seed=42).fit(corpus)"},
     {c:"py",  t:"topica.plot_positions(wf)", tail:"   # 341 respondents, 1-D"},
     {c:"fig", pause:220, html:true, t:'  <span class="ax">restrictive</span>  <span class="mk">◀</span><span class="ax">───────────────────────────────────</span><span class="mk">▶</span>  <span class="ax">permissive</span>'},
@@ -258,12 +271,12 @@
     {c:"fig", html:true, t:'                <span class="ax">-2      -1       0        +1      +2</span>'},
     {c:"gap"},
 
-    {c:"cmt", t:"# 8 · same corpus, other families — one flat namespace"},
+    {c:"cmt", t:"# 9 · same corpus, other families — one flat namespace"},
     {c:"py",  t:"nmf = topica.NMF(num_topics=5).fit(corpus)"},
     {c:"py",  t:"ctm = topica.CTM(num_topics=5, seed=42).fit(corpus)", tail:"   # correlated topics"},
     {c:"gap"},
 
-    {c:"cmt", t:"# 9 · feed it LLM sentence embeddings — contextualized topics"},
+    {c:"cmt", t:"# 10 · feed it LLM sentence embeddings — contextualized topics"},
     {c:"py",  t:"emb = topica.encode(corpus, \"bge-small-en\")", tail:"   # any encoder or API"},
     {c:"py",  t:"ctm2 = topica.CombinedTM(num_topics=5, embeddings=emb, seed=42)"},
     {c:"py",  t:"print(topica.summary(ctm2.fit(corpus)))"},
@@ -285,7 +298,7 @@
   var PROMPT = {sh:"$ ", py:">>> ", pyc:"... ", cmt:">>> ", end:"$ "};
   var TYPED  = {sh:1, py:1, pyc:1, cmt:1};
 
-  var cursor = null, token = 0, fast = false;
+  var cursor = null, token = 0, fast = false, typedCount = 0;
   function sleep(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
   function atBottom(){ screen.scrollTop = screen.scrollHeight; }
   function esc(s){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;"); }
@@ -311,12 +324,16 @@
 
     var s = line.t || "";
     if(TYPED[line.c] && !reduce && !fast){
+      // the first few lines type at a human pace; after that it speeds up
+      var warm = typedCount < 4;
       for(var i=0;i<s.length;i++){
         if(tok!==token) return;
         txt.textContent += s[i];
         atBottom();
-        await sleep(16 + Math.random()*46 + (s[i]===" "?8:0));
+        await sleep(warm ? (16 + Math.random()*46 + (s[i]===" "?8:0))
+                         : (2 + Math.random()*8 + (s[i]===" "?3:0)));
       }
+      typedCount++;
     } else if(line.html){
       txt.innerHTML = s;      // pre-formatted figure markup (trusted, inline only)
     } else {
@@ -333,6 +350,7 @@
     var tok = ++token;
     screen.innerHTML = "";
     cursor = newCursor();
+    typedCount = 0;
     for(var i=0;i<SESSION.length;i++){
       if(tok!==token) return;
       var line = SESSION[i];
@@ -347,8 +365,8 @@
       await typeLine(line, tok);
       if(tok!==token) return;
       if(!reduce && !fast){
-        var base = TYPED[line.c] ? 210 : 40;
-        await sleep(base + (line.pause||0) + Math.random()*90);
+        var base = TYPED[line.c] ? (typedCount < 4 ? 210 : 45) : 30;
+        await sleep(base + (line.pause||0) + Math.random()*(typedCount < 4 ? 90 : 40));
       }
     }
   }
