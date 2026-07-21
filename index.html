@@ -305,10 +305,34 @@
   .speed-foot span{display:inline-flex;align-items:center;gap:8px}
   .speed-foot span::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--accent)}
 
+  /* ---------- topica vs stm comparison chart ---------- */
+  .cmp-wrap{display:grid;gap:38px;align-items:center;margin-top:40px}
+  @media(min-width:900px){.cmp-wrap{grid-template-columns:1.15fr .85fr}}
+  .cmp-panel{background:var(--surface);border:1px solid var(--hair);border-radius:16px;box-shadow:var(--shadow);overflow:hidden}
+  .cmp-svg{display:block;width:100%;height:auto}
+  .cmp-cap{padding:0 20px 18px;margin:0;color:var(--faint);font-size:.8rem;font-family:var(--mono);line-height:1.5}
+  .cmp-lab{fill:var(--text);font-family:var(--mono)}
+  .cmp-sub{fill:var(--faint);font-family:var(--mono)}
+  .cmp-base{stroke:var(--hair);stroke-width:1}
+  .cmp-bar-ref{fill:var(--faint);opacity:.55}
+  .cmp-bar-topica{fill:var(--accent)}
+  .cmp-val{fill:var(--text);font-family:var(--mono);font-weight:700;font-variant-numeric:tabular-nums}
+  .cmp-sp{fill:var(--accent-deep);font-family:var(--mono);font-weight:700}
+  .cmp-note{fill:var(--faint);font-family:var(--mono)}
+  .cmp-bar{transform-box:fill-box;transform-origin:left center;transition:transform .7s cubic-bezier(.2,.7,.2,1)}
+  .cmp-pre .cmp-bar{transform:scaleX(0)}
+  .cmp-side .lead{font-size:clamp(2.4rem,5vw,3.2rem);font-family:var(--mono);font-weight:800;letter-spacing:-.03em;color:var(--accent);line-height:1}
+  .cmp-side p{color:var(--muted);margin:14px 0 0}
+  .cmp-side .mini{margin-top:22px;display:flex;flex-direction:column;gap:12px}
+  .cmp-side .mini div{display:flex;gap:12px;align-items:baseline;border-top:1px solid var(--hair);padding-top:12px}
+  .cmp-side .mini .m-n{font-family:var(--mono);font-weight:800;font-size:1.1rem;color:var(--text);min-width:82px;font-variant-numeric:tabular-nums}
+  .cmp-side .mini .m-t{color:var(--muted);font-size:.9rem}
+
   @media (prefers-reduced-motion: reduce){
     *{animation:none!important;transition:none!important;scroll-behavior:auto!important}
     .hl-draw{background-size:100% .62em}
     .fig-row.pre .fig-whisker,.fig-row.pre .fig-dot,.fig-row.pre .fig-cap-end{opacity:1}
+    .cmp-pre .cmp-bar{transform:none}
   }
 </style>
 </head>
@@ -574,31 +598,55 @@ effect = topica.estimate_effect(draws, prevalence,
     </div>
   </section>
 
-  <!-- SPEED -->
+  <!-- SPEED vs R stm -->
   <section id="speed">
     <div class="wrap">
       <div class="sec-head">
-        <span class="kicker">Speed</span>
-        <h2>Fast enough to iterate.</h2>
-        <p>A Rust core running collapsed-Gibbs sampling — no JVM to warm up, no GPU to schedule. Change a setting and refit before your train of thought moves on.</p>
+        <span class="kicker">Speed · vs R stm</span>
+        <h2>Faster than R <code>stm</code> — on every core it can't use.</h2>
+        <p>The structural topic model is the fit social scientists wait on, and R <code>stm</code> is the field standard. Run to convergence on the same corpus, topica is faster on one core and pulls away on many — because R <code>stm</code> is single-threaded by design, and topica partitions the documents across all your cores.</p>
       </div>
 
-      <div class="speed-grid">
-        <div class="stat">
-          <div class="big">46<u>&#8202;ms</u></div>
-          <p class="cap">to fit the <b>structural model above</b> — 5 topics, 341 documents, prevalence covariate and all.</p>
-        </div>
-        <div class="stat">
-          <div class="big">8.8<u>&#8202;s</u></div>
-          <p class="cap"><b>10,000 documents</b>, 20 topics, 200 sweeps — start to finish, single core.</p>
-        </div>
-        <div class="stat">
-          <div class="big">13<u>&#8202;M/s</u></div>
-          <p class="cap"><b>collapsed-Gibbs token updates</b> per second, on one core of a laptop.</p>
+      <div class="cmp-wrap">
+        <figure class="cmp-panel cmp-pre" style="margin:0">
+          <svg class="cmp-svg" viewBox="0 0 600 214" role="img" aria-label="Wall-clock time to fit a structural topic model to convergence on the 5,000-document poliblog corpus: R stm on one core takes 64.9 seconds; topica on one core takes 23.8 seconds, 2.7 times faster; topica on 16 cores takes 9.3 seconds, 7.0 times faster.">
+            <line class="cmp-base" x1="160" y1="18" x2="160" y2="190"></line>
+            <!-- R stm, 1 core -->
+            <text class="cmp-lab" x="148" y="41" text-anchor="end" font-size="13" font-weight="700">R stm</text>
+            <text class="cmp-sub" x="148" y="56" text-anchor="end" font-size="10.5">single-threaded</text>
+            <rect class="cmp-bar cmp-bar-ref" x="160" y="28" width="360" height="34" rx="5"></rect>
+            <text class="cmp-val" x="528" y="50" font-size="14">64.9&#8202;s</text>
+            <!-- topica, 1 core -->
+            <text class="cmp-lab" x="148" y="101" text-anchor="end" font-size="13" font-weight="700">topica</text>
+            <text class="cmp-sub" x="148" y="116" text-anchor="end" font-size="10.5">1 core</text>
+            <rect class="cmp-bar cmp-bar-topica" x="160" y="88" width="132" height="34" rx="5"></rect>
+            <text x="300" y="110" font-size="14"><tspan class="cmp-val">23.8&#8202;s</tspan><tspan class="cmp-sp" dx="10">2.7× faster</tspan></text>
+            <!-- topica, 16 cores -->
+            <text class="cmp-lab" x="148" y="161" text-anchor="end" font-size="13" font-weight="700">topica</text>
+            <text class="cmp-sub" x="148" y="176" text-anchor="end" font-size="10.5">16 cores</text>
+            <rect class="cmp-bar cmp-bar-topica" x="160" y="148" width="51.6" height="34" rx="5"></rect>
+            <text x="220" y="170" font-size="14"><tspan class="cmp-val">9.3&#8202;s</tspan><tspan class="cmp-sp" dx="10">7.0× faster</tspan></text>
+            <!-- axis note -->
+            <text class="cmp-note" x="160" y="206" font-size="10.5">wall-clock seconds to convergence · lower is better</text>
+          </svg>
+          <figcaption class="cmp-cap">Structural topic model (K=20, ~rating + s(time)) to convergence at emtol 1e-5, spectral start, on a two-socket AMD EPYC 7702; R stm 1.3.8, mean of two repeats. Source: topica paper §6, Table 1.</figcaption>
+        </figure>
+
+        <div class="cmp-side">
+          <div class="lead">5–7×</div>
+          <p>faster than R <code>stm</code> on a 16-core workstation. R <code>stm</code> can't touch your other cores; topica scales the sampler across them.</p>
+          <div class="mini">
+            <div><span class="m-n">2.7×</span><span class="m-t">faster even on a single core</span></div>
+            <div><span class="m-n">¼</span><span class="m-t">the memory — 180&#8202;MB vs 675&#8202;MB at 5,000 docs</span></div>
+            <div><span class="m-n">0</span><span class="m-t">parallel modes in R <code>stm</code> — none exists</span></div>
+          </div>
         </div>
       </div>
+
       <div class="speed-foot">
-        <span>Rust core</span><span>no JVM warmup</span><span>no PyTorch</span><span>one wheel</span><span>measured on an Apple Silicon laptop</span>
+        <span>25,000-doc Congress corpus: 641s → 134s (4.8× on 16 cores)</span>
+        <span>Rust core, no JVM</span>
+        <span>reproduced by benchmarks/bench_stm_convergence.py</span>
       </div>
     </div>
   </section>
@@ -731,6 +779,18 @@ effect = topica.estimate_effect(draws, prevalence,
         es.forEach(function(e){if(e.isIntersecting){showFig();io.disconnect();}});
       },{threshold:.35});
       io.observe(document.querySelector(".fig-panel"));
+    }
+  }
+
+  // ---- grow the topica-vs-stm bars when the chart scrolls into view ----
+  var cmp=document.querySelector(".cmp-panel");
+  if(cmp){
+    if(reduce||!("IntersectionObserver" in window)){cmp.classList.remove("cmp-pre");}
+    else{
+      var io2=new IntersectionObserver(function(es){
+        es.forEach(function(e){if(e.isIntersecting){cmp.classList.remove("cmp-pre");io2.disconnect();}});
+      },{threshold:.4});
+      io2.observe(cmp);
     }
   }
 
