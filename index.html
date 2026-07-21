@@ -23,6 +23,8 @@
     --swipe-strong:rgba(245,185,58,.34);
     --shadow:0 24px 60px -30px rgba(0,0,0,.8);
     --maxw:1120px;
+    /* five categorical topic colors — held constant across light/dark */
+    --t0:#35B7B0; --t1:#9B85E8; --t2:#F5B93A; --t3:#EC7A5C; --t4:#5B8DEF;
     --sans:"Helvetica Neue",Helvetica,"Segoe UI",system-ui,-apple-system,Arial,sans-serif;
     --mono:ui-monospace,"SF Mono","JetBrains Mono","Cascadia Code",Menlo,Consolas,monospace;
   }
@@ -341,6 +343,66 @@
   .vs-card .cap{margin:12px 0 0;color:var(--muted);font-size:.92rem}
   .vs-card .cap b{color:var(--text);font-weight:600}
 
+  /* ---------- hero: words-into-bins intro ---------- */
+  .hero-head{max-width:64ch}
+  .hero .lede{max-width:58ch}
+  .binhero{margin-top:34px}
+  .controls{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:18px}
+  .seg{display:inline-flex;border:1px solid var(--hair);border-radius:10px;overflow:hidden;font-family:var(--mono)}
+  .seg button{background:transparent;border:0;color:var(--muted);font-family:var(--mono);font-size:12.5px;padding:8px 12px;cursor:pointer}
+  .seg button+button{border-left:1px solid var(--hair)}
+  .seg button[aria-pressed="true"]{background:color-mix(in srgb,var(--accent) 16%,var(--surface));color:var(--text)}
+  .status{margin-left:auto;font-family:var(--mono);font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:9px;min-height:20px}
+  .status .head{color:var(--faint)}
+  .status .act b{color:var(--stcol,var(--accent));font-weight:700}
+  @media(max-width:640px){.status{margin-left:0;width:100%;order:5}}
+
+  .stage{display:grid;gap:20px}
+  @media(min-width:900px){.stage{grid-template-columns:minmax(300px,.92fr) 1.5fr;align-items:start}}
+
+  .doc{background:var(--surface);border:1px solid var(--hair);border-radius:14px;box-shadow:var(--shadow);overflow:hidden;position:relative}
+  .doc-body{padding:16px 18px 18px}
+  .resp{margin:0 0 15px;font-size:15px;line-height:1.95}
+  .resp:last-child{margin-bottom:0}
+  .resp .rl{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin-bottom:2px}
+  .w{position:relative;padding:1px 2px;border-radius:5px;transition:color .3s,background .3s,opacity .45s,transform .45s;white-space:nowrap}
+  .w.reading{background:var(--swipe);color:var(--text)}
+  .w.stop{color:var(--faint)}
+  .w.dropped{opacity:.16;transform:translateY(5px)}
+  .w.sent{color:color-mix(in srgb,var(--wc) 78%,var(--text));box-shadow:inset 0 -2px 0 color-mix(in srgb,var(--wc) 60%,transparent)}
+  .w.dim{opacity:.2}
+  .doc-note{margin:15px 0 0;font-family:var(--mono);font-size:11.5px;color:var(--faint);border-top:1px solid var(--hair);padding-top:13px;display:flex;flex-wrap:wrap;gap:5px 16px}
+  .doc-note span{display:inline-flex;align-items:center;gap:7px}
+  .doc-note .kb{width:9px;height:9px;border-radius:2px;background:var(--faint)}
+  .doc-note .kb.keep{background:var(--accent)}
+
+  .bins{display:grid;gap:12px;grid-template-columns:repeat(2,1fr)}
+  @media(min-width:560px){.bins{grid-template-columns:repeat(3,1fr)}}
+  @media(min-width:1080px){.bins{grid-template-columns:repeat(5,1fr)}}
+  .bin{background:var(--surface);border:1px solid var(--hair);border-top:3px solid var(--bc);border-radius:12px;padding:12px 12px 10px;min-height:150px;display:flex;flex-direction:column;transition:border-color .18s,box-shadow .2s,transform .2s,opacity .25s;position:relative;overflow:hidden}
+  .bin.catch{box-shadow:0 0 0 1px var(--bc),0 14px 30px -18px color-mix(in srgb,var(--bc) 70%,transparent)}
+  .bin.lit{border-color:var(--bc)}
+  .bin.mute{opacity:.32;filter:saturate(.6)}
+  .bin-h{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+  .bin-h .sw{width:11px;height:11px;border-radius:3px;background:var(--bc);flex:none}
+  .bin-h .nm{font-family:var(--mono);font-size:12px;color:var(--text);font-weight:600;letter-spacing:-.01em;line-height:1.2}
+  .bin-h .ct{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--faint);font-variant-numeric:tabular-nums;border:1px solid var(--hair);border-radius:999px;padding:2px 7px}
+  .tally{display:flex;flex-direction:column;gap:5px;margin-top:auto}
+  .row{position:relative;display:flex;align-items:center;height:23px;padding:0 8px;border-radius:6px;font-size:13px;overflow:hidden}
+  .row .bar{position:absolute;left:0;top:0;bottom:0;background:color-mix(in srgb,var(--bc) 22%,transparent);border-radius:6px;width:0;transition:width .5s cubic-bezier(.2,.7,.2,1)}
+  .row .rw{position:relative;z-index:1;color:var(--text);font-family:var(--mono);letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis}
+  .row .rn{position:relative;z-index:1;margin-left:auto;padding-left:9px;font-family:var(--mono);font-size:11px;color:var(--faint);font-variant-numeric:tabular-nums;flex:none}
+  .row.pop{animation:pop .34s cubic-bezier(.2,.9,.3,1)}
+  @keyframes pop{0%{transform:scale(.82);opacity:.4}60%{transform:scale(1.04)}100%{transform:scale(1)}}
+  .bin-empty{font-family:var(--mono);font-size:11px;color:var(--faint);margin-top:auto;opacity:.7}
+
+  .flyer{position:fixed;z-index:80;pointer-events:none;font-family:var(--mono);font-size:13.5px;padding:2px 7px;border-radius:7px;white-space:nowrap;color:var(--text);background:color-mix(in srgb,var(--fc) 26%,var(--surface));border:1px solid color-mix(in srgb,var(--fc) 55%,transparent);box-shadow:0 8px 20px -10px color-mix(in srgb,var(--fc) 80%,transparent);will-change:transform,opacity}
+  .drop-ghost{position:fixed;z-index:79;pointer-events:none;color:var(--faint);font-family:var(--mono);font-size:13px;will-change:transform,opacity}
+
+  .cap{margin:18px 0 0;font-family:var(--mono);font-size:12.5px;color:var(--faint);display:flex;flex-wrap:wrap;gap:6px 20px}
+  .cap b{color:var(--text);font-weight:600}
+  .cap .lead{color:var(--accent-deep)}
+
   @media (prefers-reduced-motion: reduce){
     *{animation:none!important;transition:none!important;scroll-behavior:auto!important}
     .hl-draw{background-size:100% .62em}
@@ -370,13 +432,13 @@
 </header>
 
 <main id="top">
-  <!-- HERO -->
+  <!-- HERO — what a topic model does, live -->
   <section class="hero">
-    <div class="wrap hero-grid">
-      <div>
+    <div class="wrap">
+      <div class="hero-head">
         <span class="kicker">Topic modeling for social science</span>
-        <h1>From a column of <span class="hl hl-draw">text</span> to publishable <span class="hl hl-draw">results</span>.</h1>
-        <p class="lede">Thirty-nine reference-validated topic models in one Python wheel. NumPy and pandas — no JVM, no PyTorch.</p>
+        <h1>A topic model sorts <span class="hl hl-draw">words</span> into <span class="hl hl-draw">bins</span>.</h1>
+        <p class="lede">That's the whole idea: read a document, drop the filler, sort what's left. topica gives you 39 reference-validated models that do it — one Python wheel, NumPy and pandas, no JVM.</p>
 
         <div class="hero-cta">
           <div class="install">
@@ -387,49 +449,39 @@
         </div>
 
         <div class="badges">
-          <span class="badge"><b>Python 3.9+</b></span>
-          <span class="badge">macOS · Linux · Windows</span>
-          <span class="badge">one wheel · <b>no JVM</b></span>
+          <span class="badge"><b>39 models</b>, one import</span>
+          <span class="badge">Python 3.9+</span>
+          <span class="badge">no JVM · <b>no PyTorch</b></span>
           <span class="badge">Apache-2.0</span>
         </div>
       </div>
 
-      <!-- illustrative "app screen": a topic readout -->
-      <div class="app" aria-label="Illustrative topica topic readout">
-        <div class="app-bar">
-          <span class="tl a"></span><span class="tl b"></span><span class="tl c"></span>
-          <span class="app-title">topica · summary(model) · LDA k=5</span>
+      <!-- live illustration: words from a document sorted into topic bins -->
+      <div class="binhero" aria-label="Live illustration: words from a document sorted into topic bins">
+        <div class="controls">
+          <button class="btn btn-primary" id="play">▶ Sort the words</button>
+          <button class="btn btn-ghost" id="replay" hidden>↻ Replay</button>
+          <div class="seg" role="group" aria-label="Playback speed">
+            <button id="sp1" aria-pressed="true">1×</button>
+            <button id="sp2" aria-pressed="false">2×</button>
+          </div>
+          <div class="status" id="status" aria-live="polite">
+            <span class="head">the idea</span>
+            <span class="act">read → prune → bin · <b>watch it run</b></span>
+          </div>
         </div>
-        <div class="app-body">
-          <p class="app-note"># top words per topic — bar width ∝ probability (illustrative)</p>
 
-          <div class="topic">
-            <div class="topic-h"><span class="t">topic 1 · economy</span><span class="p">prev 0.28</span></div>
-            <div class="words">
-              <div class="word" style="--w:1"><div class="bar"></div><span>jobs</span><b>.041</b></div>
-              <div class="word" style="--w:.82"><div class="bar"></div><span>wages</span><b>.034</b></div>
-              <div class="word" style="--w:.6"><div class="bar"></div><span>economy</span><b>.025</b></div>
-              <div class="word" style="--w:.44"><div class="bar"></div><span>workers</span><b>.018</b></div>
+        <div class="stage">
+          <figure class="doc" style="margin:0">
+            <div class="app-bar">
+              <span class="tl a"></span><span class="tl b"></span><span class="tl c"></span>
+              <span class="app-title">corpus · gadarian · 3 responses</span>
             </div>
-          </div>
-
-          <div class="topic">
-            <div class="topic-h"><span class="t">topic 2 · border &amp; law</span><span class="p">prev 0.23</span></div>
-            <div class="words">
-              <div class="word" style="--w:1"><div class="bar"></div><span>border</span><b>.048</b></div>
-              <div class="word" style="--w:.74"><div class="bar"></div><span>law</span><b>.036</b></div>
-              <div class="word" style="--w:.55"><div class="bar"></div><span>legal</span><b>.027</b></div>
-              <div class="word" style="--w:.4"><div class="bar"></div><span>enforce</span><b>.020</b></div>
-            </div>
-          </div>
-
-          <div class="topic">
-            <div class="topic-h"><span class="t">topic 3 · family</span><span class="p">prev 0.19</span></div>
-            <div class="words">
-              <div class="word" style="--w:1"><div class="bar"></div><span>family</span><b>.039</b></div>
-              <div class="word" style="--w:.7"><div class="bar"></div><span>children</span><b>.028</b></div>
-              <div class="word" style="--w:.5"><div class="bar"></div><span>home</span><b>.021</b></div>
-            </div>
+            <div class="doc-body" id="doc"></div>
+          </figure>
+          <div>
+            <div class="bins" id="bins"></div>
+            <p class="cap" id="cap" hidden></p>
           </div>
         </div>
       </div>
@@ -942,6 +994,234 @@ effect = topica.estimate_effect(draws, prevalence,
     tiles.forEach(function(t){t.classList.remove("pre");t.classList.add("in");});
   }else{
     tiles.forEach(function(t,i){setTimeout(function(){t.classList.remove("pre");t.classList.add("in");},260+i*22);});
+  }
+})();
+</script>
+
+<!-- HERO: words-into-bins animation -->
+<script>
+(function(){
+  var docEl=document.getElementById("doc");
+  var binsEl=document.getElementById("bins");
+  if(!docEl||!binsEl) return;
+  var reduceQ=matchMedia("(prefers-reduced-motion: reduce)");
+  var root=document.documentElement;
+
+  var TOPICS=[
+    {name:"people · country",     v:"--t0"},
+    {name:"law · policy",         v:"--t1"},
+    {name:"jobs · security",      v:"--t2"},
+    {name:"family · worry",       v:"--t3"},
+    {name:"immigration · legal",  v:"--t4"}
+  ];
+  function tcol(i){return getComputedStyle(root).getPropertyValue(TOPICS[i].v).trim();}
+
+  // three real-style open-ended immigration responses. t = topic index, -1 = stopword.
+  var DOC=[
+    {label:"response 01", toks:[
+      ["Illegal",4],["immigrants",4],["take",-1],["our",-1],["jobs",2],["."],
+      ["The",-1],["jobs",2],["should",-1],["go",-1],["to",-1],["americans",2],["."],
+      ["I",-1],["worry",3],["about",-1],["our",-1],["security",2],["."]
+    ]},
+    {label:"response 02", toks:[
+      ["People",0],["come",0],["here",-1],["and",-1],["do",-1],["not",-1],["learn",-1],["english",0],["."],
+      ["This",-1],["country",0],["has",-1],["laws",1],[",",null],["and",-1],["the",-1],["law",1],["must",-1],["deport",1],["people",0],["."],
+      ["They",-1],["are",-1],["illegal",4],["."]
+    ]},
+    {label:"response 03", toks:[
+      ["I",-1],["worry",3],["about",-1],["the",-1],["children",3],["."],
+      ["The",-1],["racism",3],["worries",3],["me",-1],["."],
+      ["Immigration",4],["needs",-1],["a",-1],["legal",4],["process",-1],["for",-1],["immigrants",4],["who",-1],["work",0],["."]
+    ]}
+  ];
+  var PUNCT={".":1,",":1,";":1};
+
+  var statusEl=document.getElementById("status");
+  var playBtn=document.getElementById("play");
+  var replayBtn=document.getElementById("replay");
+  var capEl=document.getElementById("cap");
+
+  var CELLS=[];
+  DOC.forEach(function(r){
+    var p=document.createElement("p"); p.className="resp";
+    var lab=document.createElement("span"); lab.className="rl"; lab.textContent=r.label; p.appendChild(lab);
+    r.toks.forEach(function(tk){
+      var word=tk[0], t=tk.length>1?tk[1]:null;
+      if(t===null || PUNCT[word]){ p.appendChild(document.createTextNode(word)); p.appendChild(document.createTextNode(" ")); return; }
+      var sp=document.createElement("span");
+      sp.className="w"+(t===-1?" stop":""); sp.textContent=word;
+      p.appendChild(sp); p.appendChild(document.createTextNode(" "));
+      CELLS.push({el:sp,w:word,t:t});
+    });
+    docEl.appendChild(p);
+  });
+  var note=document.createElement("p"); note.className="doc-note";
+  note.innerHTML='<span><span class="kb keep"></span> kept &amp; binned</span><span><span class="kb"></span> filler, pruned</span>';
+  docEl.appendChild(note);
+
+  var BINROWS=[];
+  TOPICS.forEach(function(tp,i){
+    var b=document.createElement("div"); b.className="bin"; b.style.setProperty("--bc",tcol(i));
+    b.dataset.bin=i;
+    b.innerHTML='<div class="bin-h"><span class="sw"></span><span class="nm">'+tp.name+'</span><span class="ct">0</span></div>'+
+                '<div class="bin-empty">empty</div><div class="tally"></div>';
+    binsEl.appendChild(b);
+    BINROWS.push({el:b,ct:b.querySelector(".ct"),empty:b.querySelector(".bin-empty"),tally:b.querySelector(".tally"),order:[],map:{},max:0,total:0});
+    b.addEventListener("mouseenter",function(){ if(done) lite(i); });
+    b.addEventListener("mouseleave",function(){ if(done) lite(-1); });
+    b.addEventListener("click",function(){ if(done) lite(pinned===i?-1:i,true); });
+  });
+
+  var token=0, done=false, pinned=-1, speed=1;
+
+  function setSpeed(s){
+    speed=s;
+    document.getElementById("sp1").setAttribute("aria-pressed",s===1?"true":"false");
+    document.getElementById("sp2").setAttribute("aria-pressed",s===2?"true":"false");
+  }
+  document.getElementById("sp1").addEventListener("click",function(){setSpeed(1);});
+  document.getElementById("sp2").addEventListener("click",function(){setSpeed(2);});
+
+  function sleep(ms){return new Promise(function(r){setTimeout(r,ms/speed);});}
+  function status(head,html,col){
+    statusEl.innerHTML='<span class="head">'+head+'</span><span class="act">'+html+'</span>';
+    statusEl.style.setProperty("--stcol",col||"var(--accent)");
+  }
+
+  function resetAll(){
+    token++; done=false; pinned=-1;
+    document.querySelectorAll(".flyer,.drop-ghost").forEach(function(n){n.remove();});
+    CELLS.forEach(function(c){c.el.className="w"+(c.t===-1?" stop":"");c.el.style.removeProperty("--wc");});
+    BINROWS.forEach(function(b){
+      b.order=[];b.map={};b.max=0;b.total=0;b.tally.innerHTML="";
+      b.ct.textContent="0";b.empty.style.display="";b.el.classList.remove("catch","lit","mute");
+    });
+    capEl.hidden=true; capEl.innerHTML="";
+  }
+
+  function commit(i,word){
+    var b=BINROWS[i], key=word.toLowerCase();
+    b.empty.style.display="none"; b.total++; b.ct.textContent=b.total;
+    var row=b.map[key];
+    if(!row){
+      var el=document.createElement("div"); el.className="row";
+      el.innerHTML='<span class="bar"></span><span class="rw">'+word+'</span><span class="rn">1</span>';
+      row={el:el,bar:el.querySelector(".bar"),rn:el.querySelector(".rn"),count:1};
+      b.map[key]=row; b.order.push(key); b.tally.appendChild(el);
+    }else{ row.count++; row.rn.textContent=row.count; }
+    if(row.count>b.max) b.max=row.count;
+    b.order.sort(function(a,c){ return b.map[c].count-b.map[a].count; });
+    b.order.forEach(function(k){ b.tally.appendChild(b.map[k].el); });
+    b.order.forEach(function(k){ var rw=b.map[k]; rw.bar.style.width=Math.round(rw.count/b.max*100)+"%"; });
+    row.el.classList.remove("pop"); void row.el.offsetWidth; row.el.classList.add("pop");
+    b.el.classList.remove("catch"); void b.el.offsetWidth; b.el.classList.add("catch");
+    setTimeout(function(){b.el.classList.remove("catch");},260);
+  }
+
+  function fly(cell){
+    return new Promise(function(res){
+      var i=cell.t, color=tcol(i);
+      var from=cell.el.getBoundingClientRect();
+      var bin=BINROWS[i].el, br=bin.getBoundingClientRect();
+      cell.el.style.setProperty("--wc",color);
+      cell.el.classList.remove("reading"); cell.el.classList.add("sent");
+      if(reduceQ.matches){ commit(i,cell.w); return res(); }
+      var fl=document.createElement("span"); fl.className="flyer"; fl.textContent=cell.w;
+      fl.style.setProperty("--fc",color);
+      fl.style.left=from.left+"px"; fl.style.top=from.top+"px";
+      document.body.appendChild(fl);
+      var fr=fl.getBoundingClientRect();
+      var tx=(br.left+br.width/2)-(fr.left+fr.width/2);
+      var ty=(br.top+22)-(fr.top+fr.height/2);
+      var dur=360/speed, lift=Math.min(-40,ty*0.35-70);
+      var anim=fl.animate([
+        {transform:"translate(0px,0px) scale(1)",opacity:1},
+        {transform:"translate("+(tx*0.5)+"px,"+lift+"px) scale(1.08)",opacity:1,offset:.55},
+        {transform:"translate("+tx+"px,"+ty+"px) scale(.9)",opacity:.92}
+      ],{duration:dur,easing:"cubic-bezier(.34,.02,.24,1)",fill:"forwards"});
+      anim.onfinish=function(){ fl.remove(); commit(i,cell.w); res(); };
+    });
+  }
+
+  function drop(cell){
+    return new Promise(function(res){
+      if(reduceQ.matches){ cell.el.classList.add("dropped"); return res(); }
+      var from=cell.el.getBoundingClientRect();
+      var g=document.createElement("span"); g.className="drop-ghost"; g.textContent=cell.w;
+      g.style.left=from.left+"px"; g.style.top=from.top+"px";
+      document.body.appendChild(g);
+      cell.el.classList.add("dropped");
+      var a=g.animate([
+        {transform:"translateY(0) rotate(0)",opacity:.5},
+        {transform:"translateY(26px) rotate(6deg)",opacity:0}
+      ],{duration:380/speed,easing:"ease-in",fill:"forwards"});
+      a.onfinish=function(){g.remove();res();};
+    });
+  }
+
+  async function run(){
+    resetAll();
+    var tok=token; playBtn.disabled=true;
+    var kept=0;
+    for(var i=0;i<CELLS.length;i++){
+      if(tok!==token) return;
+      var cell=CELLS[i];
+      cell.el.classList.add("reading");
+      if(cell.t===-1){
+        status("pruning","dropping filler — <b style=\"color:var(--faint)\">"+cell.w+"</b>","var(--faint)");
+        await sleep(reduceQ.matches?0:70);
+        if(tok!==token) return;
+        drop(cell);
+        await sleep(reduceQ.matches?0:60);
+      }else{
+        kept++;
+        status("binning","<b>"+cell.w+"</b> → "+TOPICS[cell.t].name,tcol(cell.t));
+        statusEl.style.setProperty("--stcol",tcol(cell.t));
+        await sleep(reduceQ.matches?0:90);
+        if(tok!==token) return;
+        await fly(cell);
+        await sleep(reduceQ.matches?0:40);
+      }
+      if(tok!==token) return;
+    }
+    if(tok!==token) return;
+    done=true; playBtn.disabled=false;
+    status("done","sorted <b>"+kept+"</b> words into <b>5</b> bins — hover a bin to trace it back","var(--accent)");
+    var lead=BINROWS.map(function(b,i){return {i:i,n:b.total};}).sort(function(a,c){return c.n-a.n;})[0];
+    capEl.hidden=false;
+    capEl.innerHTML='<span class="lead">'+kept+' content words</span> binned · <b>'+(CELLS.length-kept)+
+      '</b> stopwords pruned · biggest topic: <b style="color:'+tcol(lead.i)+'">'+TOPICS[lead.i].name+'</b> ('+lead.n+' words)';
+    replayBtn.hidden=false;
+    playBtn.textContent="▶ Sort again";
+  }
+
+  function lite(i,pin){
+    if(pin!==undefined) pinned = (i===-1?-1:(pinned===i?-1:i));
+    var active = (pinned!==-1)?pinned:i;
+    BINROWS.forEach(function(b,bi){
+      b.el.classList.toggle("lit",active!==-1&&bi===active);
+      b.el.classList.toggle("mute",active!==-1&&bi!==active);
+    });
+    CELLS.forEach(function(c){
+      if(c.t===-1) return;
+      c.el.classList.toggle("dim",active!==-1&&c.t!==active);
+    });
+  }
+
+  playBtn.addEventListener("click",run);
+  replayBtn.addEventListener("click",run);
+
+  // auto-play once when the hero is in view (after the headline highlighter draws)
+  if(reduceQ.matches){ run(); }
+  else{
+    var started=false;
+    function kick(){ if(started) return; started=true; setTimeout(run,900); }
+    if("IntersectionObserver" in window){
+      var io=new IntersectionObserver(function(es){
+        es.forEach(function(e){ if(e.isIntersecting){ kick(); io.disconnect(); } });
+      },{threshold:.25});
+      io.observe(document.querySelector(".binhero"));
+    } else { kick(); }
   }
 })();
 </script>
