@@ -264,9 +264,51 @@
   .foot-col a:hover{color:var(--accent)}
   .foot-base{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;margin-top:44px;padding-top:22px;border-top:1px solid var(--hair);color:var(--faint);font-size:.86rem;font-family:var(--mono)}
 
+  /* ---------- error-bar figure ---------- */
+  .fig-wrap{display:grid;gap:40px;align-items:center;margin-top:40px}
+  @media(min-width:900px){.fig-wrap{grid-template-columns:.82fr 1.18fr}}
+  .fig-copy p{color:var(--muted);margin:14px 0 0}
+  .fig-copy .read{margin-top:20px;display:flex;flex-direction:column;gap:11px}
+  .fig-copy .read li{list-style:none;display:flex;gap:11px;align-items:flex-start;color:var(--muted);font-size:.95rem}
+  .fig-copy .read .k{width:11px;height:11px;border-radius:3px;margin-top:5px;flex:none}
+  .fig-copy .read .k.sig{background:var(--accent)}
+  .fig-copy .read .k.ns{background:var(--faint)}
+  .fig-panel{background:var(--surface);border:1px solid var(--hair);border-radius:16px;box-shadow:var(--shadow);overflow:hidden}
+  .fig-svg{display:block;width:100%;height:auto}
+  .fig-cap{padding:0 20px 18px;margin:0;color:var(--faint);font-size:.8rem;font-family:var(--mono);line-height:1.5}
+
+  .fig-zero{stroke:var(--muted);stroke-width:1;stroke-dasharray:3 4;opacity:.7}
+  .fig-axis{stroke:var(--hair);stroke-width:1}
+  .fig-tick{stroke:var(--hair);stroke-width:1}
+  .fig-ticklab,.fig-axislab{fill:var(--faint);font-family:var(--mono)}
+  .fig-lab{fill:var(--text);font-family:var(--mono)}
+  .fig-tnum{fill:var(--faint);font-family:var(--mono)}
+  .fig-whisker{stroke:var(--faint);stroke-width:2;stroke-linecap:round}
+  .fig-cap-end{stroke:var(--faint);stroke-width:2;stroke-linecap:round}
+  .fig-dot{fill:var(--surface);stroke:var(--faint);stroke-width:2.5}
+  .fig-row.sig .fig-whisker,.fig-row.sig .fig-cap-end{stroke:var(--accent)}
+  .fig-row.sig .fig-dot{fill:var(--accent);stroke:var(--accent)}
+  .fig-row.sig .fig-lab{fill:var(--text)}
+  .fig-row.sig .fig-tnum{fill:var(--accent-deep)}
+  .fig-row .fig-whisker,.fig-row .fig-dot,.fig-row .fig-cap-end{transition:opacity .5s ease}
+  .fig-row.pre .fig-whisker,.fig-row.pre .fig-dot,.fig-row.pre .fig-cap-end{opacity:0}
+
+  /* ---------- speed ---------- */
+  .speed-grid{display:grid;gap:14px;margin-top:40px;grid-template-columns:repeat(1,1fr)}
+  @media(min-width:640px){.speed-grid{grid-template-columns:repeat(3,1fr)}}
+  .stat{background:var(--surface);border:1px solid var(--hair);border-radius:14px;padding:24px 22px;border-top:3px solid var(--accent)}
+  .stat .big{font-family:var(--mono);font-weight:800;font-size:clamp(2rem,4.4vw,2.7rem);letter-spacing:-.03em;color:var(--text);font-variant-numeric:tabular-nums;line-height:1}
+  .stat .big u{color:var(--accent);text-decoration:none}
+  .stat .cap{margin:12px 0 0;color:var(--muted);font-size:.92rem}
+  .stat .cap b{color:var(--text);font-weight:600}
+  .speed-foot{margin-top:20px;font-family:var(--mono);font-size:12.5px;color:var(--faint);display:flex;flex-wrap:wrap;gap:8px 18px}
+  .speed-foot span{display:inline-flex;align-items:center;gap:8px}
+  .speed-foot span::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--accent)}
+
   @media (prefers-reduced-motion: reduce){
     *{animation:none!important;transition:none!important;scroll-behavior:auto!important}
     .hl-draw{background-size:100% .62em}
+    .fig-row.pre .fig-whisker,.fig-row.pre .fig-dot,.fig-row.pre .fig-cap-end{opacity:1}
   }
 </style>
 </head>
@@ -277,9 +319,9 @@
     <a class="brand" href="#top">top<b>ic</b>a<span class="dot">.</span></a>
     <nav class="nav-links">
       <a href="#features">Why</a>
-      <a href="#start">Quick start</a>
+      <a href="#uncertainty">Uncertainty</a>
+      <a href="#speed">Speed</a>
       <a href="#models">Models</a>
-      <a href="#manifesto">Manifesto</a>
       <a href="https://nealcaren.github.io/topica/">Docs</a>
     </nav>
     <div class="nav-right">
@@ -409,6 +451,86 @@
     </div>
   </section>
 
+  <!-- ERROR-BAR FIGURE -->
+  <section id="uncertainty">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="kicker">Show, don't tell</span>
+        <h2>An error bar on every estimate.</h2>
+        <p>Topics are estimated, not observed — so topica carries that uncertainty into every number downstream. Below: a real fit relating an experimental treatment to each topic's prevalence, with 95% intervals from the method of composition (Rubin-pooled over posterior draws, the procedure R <code>stm</code> uses).</p>
+      </div>
+
+      <div class="fig-wrap">
+        <div class="fig-copy">
+          <ul class="read">
+            <li><span class="k sig"></span><span>Interval clears zero — a real shift. The treatment raises <span class="hl">jobs / security</span> and lowers <span class="hl">country</span>.</span></li>
+            <li><span class="k ns"></span><span>Interval spans zero — no detectable effect. Three of the five topics simply don't move, and the bars say so.</span></li>
+          </ul>
+          <p style="margin-top:22px;font-family:var(--mono);font-size:.82rem;color:var(--faint)">This whole figure is one call: <br><code>estimate_effect(draws, X, ci=0.95)</code>.</p>
+        </div>
+
+        <figure class="fig-panel" style="margin:0">
+          <svg class="fig-svg" viewBox="0 0 600 330" role="img" aria-label="Estimated treatment effect on each of five topics with 95 percent confidence intervals. Topic 2 (jobs, security) shifts up and topic 3 (country) shifts down; the other three intervals span zero.">
+            <!-- zero reference -->
+            <text class="fig-tnum" x="358" y="34" text-anchor="middle" font-size="10">no effect</text>
+            <line class="fig-zero" x1="358" y1="42" x2="358" y2="256"></line>
+            <!-- rows -->
+            <g class="fig-row ns pre">
+              <text class="fig-lab" x="192" y="64" text-anchor="end" font-size="12.5">T0 · illegals, people</text>
+              <line class="fig-whisker" x1="251" y1="60" x2="364" y2="60"></line>
+              <line class="fig-cap-end" x1="251" y1="55" x2="251" y2="65"></line>
+              <line class="fig-cap-end" x1="364" y1="55" x2="364" y2="65"></line>
+              <text class="fig-tnum" x="307" y="47" text-anchor="middle" font-size="11">−0.05</text>
+              <circle class="fig-dot" cx="307" cy="60" r="5.5"></circle>
+            </g>
+            <g class="fig-row ns pre">
+              <text class="fig-lab" x="192" y="109" text-anchor="end" font-size="12.5">T1 · immigrants, immigration</text>
+              <line class="fig-whisker" x1="336" y1="105" x2="443" y2="105"></line>
+              <line class="fig-cap-end" x1="336" y1="100" x2="336" y2="110"></line>
+              <line class="fig-cap-end" x1="443" y1="100" x2="443" y2="110"></line>
+              <text class="fig-tnum" x="390" y="92" text-anchor="middle" font-size="11">+0.03</text>
+              <circle class="fig-dot" cx="390" cy="105" r="5.5"></circle>
+            </g>
+            <g class="fig-row sig pre">
+              <text class="fig-lab" x="192" y="154" text-anchor="end" font-size="12.5">T2 · jobs, security</text>
+              <line class="fig-whisker" x1="424" y1="150" x2="550" y2="150"></line>
+              <line class="fig-cap-end" x1="424" y1="145" x2="424" y2="155"></line>
+              <line class="fig-cap-end" x1="550" y1="145" x2="550" y2="155"></line>
+              <text class="fig-tnum" x="487" y="137" text-anchor="middle" font-size="11">+0.14</text>
+              <circle class="fig-dot" cx="487" cy="150" r="5.5"></circle>
+            </g>
+            <g class="fig-row sig pre">
+              <text class="fig-lab" x="192" y="199" text-anchor="end" font-size="12.5">T3 · country, people</text>
+              <line class="fig-whisker" x1="229" y1="195" x2="357" y2="195"></line>
+              <line class="fig-cap-end" x1="229" y1="190" x2="229" y2="200"></line>
+              <line class="fig-cap-end" x1="357" y1="190" x2="357" y2="200"></line>
+              <text class="fig-tnum" x="293" y="182" text-anchor="middle" font-size="11">−0.07</text>
+              <circle class="fig-dot" cx="293" cy="195" r="5.5"></circle>
+            </g>
+            <g class="fig-row ns pre">
+              <text class="fig-lab" x="192" y="244" text-anchor="end" font-size="12.5">T4 · illegal, immigrants</text>
+              <line class="fig-whisker" x1="257" y1="240" x2="370" y2="240"></line>
+              <line class="fig-cap-end" x1="257" y1="235" x2="257" y2="245"></line>
+              <line class="fig-cap-end" x1="370" y1="235" x2="370" y2="245"></line>
+              <text class="fig-tnum" x="313" y="227" text-anchor="middle" font-size="11">−0.05</text>
+              <circle class="fig-dot" cx="313" cy="240" r="5.5"></circle>
+            </g>
+            <!-- x axis -->
+            <line class="fig-axis" x1="210" y1="270" x2="580" y2="270"></line>
+            <g font-size="10.5">
+              <line class="fig-tick" x1="266" y1="270" x2="266" y2="276"></line><text class="fig-ticklab" x="266" y="289" text-anchor="middle">−0.1</text>
+              <line class="fig-tick" x1="358" y1="270" x2="358" y2="276"></line><text class="fig-ticklab" x="358" y="289" text-anchor="middle">0</text>
+              <line class="fig-tick" x1="450" y1="270" x2="450" y2="276"></line><text class="fig-ticklab" x="450" y="289" text-anchor="middle">+0.1</text>
+              <line class="fig-tick" x1="543" y1="270" x2="543" y2="276"></line><text class="fig-ticklab" x="543" y="289" text-anchor="middle">+0.2</text>
+            </g>
+            <text class="fig-axislab" x="395" y="312" text-anchor="middle" font-size="11">change in topic proportion&#160;&#160;(treatment − control)</text>
+          </svg>
+          <figcaption class="fig-cap">Real topica output — STM (k=5) on the bundled Gadarian (2010) immigration experiment, 341 open-ended responses. estimate_effect(), 95% CI, method of composition over 200 posterior draws.</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
   <!-- QUICK START -->
   <section id="start" style="background:var(--surface-2);border-top:1px solid var(--hair);border-bottom:1px solid var(--hair)">
     <div class="wrap">
@@ -448,6 +570,35 @@ stm.fit(corpus, prevalence, prevalence_names=[<span class="s">"treatment"</span>
 effect = topica.estimate_effect(draws, prevalence,
                                 feature_names=[<span class="s">"treatment"</span>])</pre>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SPEED -->
+  <section id="speed">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="kicker">Speed</span>
+        <h2>Fast enough to iterate.</h2>
+        <p>A Rust core running collapsed-Gibbs sampling — no JVM to warm up, no GPU to schedule. Change a setting and refit before your train of thought moves on.</p>
+      </div>
+
+      <div class="speed-grid">
+        <div class="stat">
+          <div class="big">46<u>&#8202;ms</u></div>
+          <p class="cap">to fit the <b>structural model above</b> — 5 topics, 341 documents, prevalence covariate and all.</p>
+        </div>
+        <div class="stat">
+          <div class="big">8.8<u>&#8202;s</u></div>
+          <p class="cap"><b>10,000 documents</b>, 20 topics, 200 sweeps — start to finish, single core.</p>
+        </div>
+        <div class="stat">
+          <div class="big">13<u>&#8202;M/s</u></div>
+          <p class="cap"><b>collapsed-Gibbs token updates</b> per second, on one core of a laptop.</p>
+        </div>
+      </div>
+      <div class="speed-foot">
+        <span>Rust core</span><span>no JVM warmup</span><span>no PyTorch</span><span>one wheel</span><span>measured on an Apple Silicon laptop</span>
       </div>
     </div>
   </section>
@@ -568,6 +719,20 @@ effect = topica.estimate_effect(draws, prevalence,
   requestAnimationFrame(function(){setTimeout(function(){
     document.querySelectorAll(".hl-draw").forEach(function(el,i){setTimeout(function(){el.classList.add("on");},120*i);});
   },260);});
+
+  // ---- reveal the figure's error bars when it scrolls into view ----
+  var figRows=[].slice.call(document.querySelectorAll(".fig-row"));
+  var reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function showFig(){figRows.forEach(function(r,i){setTimeout(function(){r.classList.remove("pre");},reduce?0:120*i);});}
+  if(figRows.length){
+    if(reduce||!("IntersectionObserver" in window)){showFig();}
+    else{
+      var io=new IntersectionObserver(function(es){
+        es.forEach(function(e){if(e.isIntersecting){showFig();io.disconnect();}});
+      },{threshold:.35});
+      io.observe(document.querySelector(".fig-panel"));
+    }
+  }
 
   // ---- models wall (real roster, all 39) ----
   // group -> [label, categorical color]. Amber stays the brand; the rest are a
