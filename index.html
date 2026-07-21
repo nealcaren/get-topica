@@ -328,6 +328,19 @@
   .cmp-side .mini .m-n{font-family:var(--mono);font-weight:800;font-size:1.1rem;color:var(--text);min-width:82px;font-variant-numeric:tabular-nums}
   .cmp-side .mini .m-t{color:var(--muted);font-size:.9rem}
 
+  /* "across the field" comparison cards */
+  .vs-head{margin-top:52px;display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+  .vs-head h3{font-size:1.15rem;letter-spacing:-.01em;margin:0}
+  .vs-head span{color:var(--muted);font-size:.95rem}
+  .vs-grid{display:grid;gap:14px;margin-top:18px;grid-template-columns:repeat(1,1fr)}
+  @media(min-width:720px){.vs-grid{grid-template-columns:repeat(2,1fr)}}
+  .vs-card{background:var(--surface);border:1px solid var(--hair);border-radius:14px;padding:22px;border-top:3px solid var(--accent)}
+  .vs-card .lab{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent-deep);display:flex;align-items:center;gap:8px}
+  .vs-card .big{font-family:var(--mono);font-weight:800;font-size:clamp(1.7rem,3.6vw,2.2rem);letter-spacing:-.02em;line-height:1;margin:14px 0 0;font-variant-numeric:tabular-nums;color:var(--accent)}
+  .vs-card .big .vs{color:var(--muted);font-weight:600;font-size:.62em;margin-left:8px}
+  .vs-card .cap{margin:12px 0 0;color:var(--muted);font-size:.92rem}
+  .vs-card .cap b{color:var(--text);font-weight:600}
+
   @media (prefers-reduced-motion: reduce){
     *{animation:none!important;transition:none!important;scroll-behavior:auto!important}
     .hl-draw{background-size:100% .62em}
@@ -643,10 +656,27 @@ effect = topica.estimate_effect(draws, prevalence,
         </div>
       </div>
 
+      <div class="vs-head">
+        <h3>Same story against the rest of the field.</h3>
+        <span>topica matches the compiled samplers core-for-core, then uses the cores R and the JVM can't.</span>
+      </div>
+      <div class="vs-grid">
+        <div class="vs-card">
+          <span class="lab">vs MALLET · Java LDA</span>
+          <div class="big">13.0s<span class="vs">vs 21.2s</span></div>
+          <p class="cap">A 5,000-document LDA fit on <b>8 threads</b>. topica matches the compiled Java sampler core-for-core and pulls ahead in parallel — with <b>no JVM</b> to start.</p>
+        </div>
+        <div class="vs-card">
+          <span class="lab">vs keyATM · R / C++</span>
+          <div class="big">2.1×<span class="vs">on 8 cores</span></div>
+          <p class="cap">Parity with its C++ sampler single-threaded (22.5s vs 23.0s); <b>1.7× on four cores, 2.1× on eight</b> — through a parallel sweep the R package has no equivalent of.</p>
+        </div>
+      </div>
+
       <div class="speed-foot">
-        <span>25,000-doc Congress corpus: 641s → 134s (4.8× on 16 cores)</span>
+        <span>STM · 25,000-doc Congress corpus: 641s → 134s (4.8× on 16 cores)</span>
         <span>Rust core, no JVM</span>
-        <span>reproduced by benchmarks/bench_stm_convergence.py</span>
+        <span>reproduced by scripts in benchmarks/</span>
       </div>
     </div>
   </section>
