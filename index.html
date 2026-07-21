@@ -1,0 +1,693 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>topica — topic modeling for social science</title>
+<meta name="description" content="A fast, all-purpose topic-modeling toolkit for Python. 39 reference-validated models in one wheel — NumPy and pandas, no JVM, no PyTorch.">
+<style>
+  :root{
+    color-scheme: dark;
+    /* palette — chosen, not defaulted: blue-black ink + warm off-white + highlighter amber */
+    --ink:#0B0D12;            /* page ground */
+    --surface:#12151D;        /* raised panels */
+    --surface-2:#171B24;      /* nested panels */
+    --hair:#252A35;           /* hairlines */
+    --text:#ECE8DE;           /* warm off-white */
+    --muted:#969DAC;          /* secondary text */
+    --faint:#6B7280;          /* tertiary */
+    --accent:#F5B93A;         /* highlighter amber */
+    --accent-deep:#E6A521;
+    --accent-ink:#2A1E05;     /* text on amber */
+    --swipe:rgba(245,185,58,.26);  /* highlighter wash */
+    --swipe-strong:rgba(245,185,58,.34);
+    --shadow:0 24px 60px -30px rgba(0,0,0,.8);
+    --maxw:1120px;
+    --sans:"Helvetica Neue",Helvetica,"Segoe UI",system-ui,-apple-system,Arial,sans-serif;
+    --mono:ui-monospace,"SF Mono","JetBrains Mono","Cascadia Code",Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme: light){
+    :root{
+      color-scheme: light;
+      --ink:#FBF6EC; --surface:#FFFFFF; --surface-2:#FBF7EE;
+      --hair:#E7DECC; --text:#1A1D24; --muted:#5B6270; --faint:#8A8F9C;
+      --accent:#E4A310; --accent-deep:#C98A00; --accent-ink:#2A1E05;
+      --swipe:rgba(245,185,58,.5); --swipe-strong:rgba(245,185,58,.62);
+      --shadow:0 24px 60px -34px rgba(60,44,10,.28);
+    }
+  }
+  /* explicit toggle wins over the OS media query, both directions */
+  :root[data-theme="light"]{
+    color-scheme: light;
+    --ink:#FBF6EC; --surface:#FFFFFF; --surface-2:#FBF7EE;
+    --hair:#E7DECC; --text:#1A1D24; --muted:#5B6270; --faint:#8A8F9C;
+    --accent:#E4A310; --accent-deep:#C98A00; --accent-ink:#2A1E05;
+    --swipe:rgba(245,185,58,.5); --swipe-strong:rgba(245,185,58,.62);
+    --shadow:0 24px 60px -34px rgba(60,44,10,.28);
+  }
+  :root[data-theme="dark"]{
+    color-scheme: dark;
+    --ink:#0B0D12; --surface:#12151D; --surface-2:#171B24;
+    --hair:#252A35; --text:#ECE8DE; --muted:#969DAC; --faint:#6B7280;
+    --accent:#F5B93A; --accent-deep:#E6A521; --accent-ink:#2A1E05;
+    --swipe:rgba(245,185,58,.26); --swipe-strong:rgba(245,185,58,.34);
+    --shadow:0 24px 60px -30px rgba(0,0,0,.8);
+  }
+
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;background:var(--ink);color:var(--text);
+    font-family:var(--sans);line-height:1.6;
+    -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+    overflow-x:hidden;
+  }
+  a{color:inherit;text-decoration:none}
+  ::selection{background:var(--swipe-strong);color:var(--text)}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:4px}
+
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
+  .kicker{
+    font-family:var(--mono);font-size:12px;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--accent-deep);font-weight:600;
+  }
+  /* highlighter swipe behind inline words */
+  .hl{
+    background:linear-gradient(var(--swipe),var(--swipe));
+    background-repeat:no-repeat;background-position:0 78%;
+    background-size:100% .62em;padding:0 .06em;
+    box-decoration-break:clone;-webkit-box-decoration-break:clone;
+  }
+  .hl-draw{background-size:0 .62em;transition:background-size .7s cubic-bezier(.2,.7,.2,1)}
+  .hl-draw.on{background-size:100% .62em}
+
+  /* ---------- nav ---------- */
+  header.nav{
+    position:sticky;top:0;z-index:50;
+    backdrop-filter:saturate(140%) blur(12px);
+    background:color-mix(in srgb,var(--ink) 82%,transparent);
+    border-bottom:1px solid var(--hair);
+  }
+  .nav-in{display:flex;align-items:center;gap:20px;height:62px}
+  .brand{font-weight:800;font-size:20px;letter-spacing:-.02em;display:flex;align-items:center;gap:2px}
+  .brand .dot{color:var(--accent)}
+  .brand b{background:linear-gradient(var(--swipe),var(--swipe));background-repeat:no-repeat;background-position:0 70%;background-size:100% .5em;padding:0 .08em;font-weight:800}
+  .nav-links{display:flex;gap:22px;margin-left:14px}
+  .nav-links a{color:var(--muted);font-size:14.5px;font-weight:500}
+  .nav-links a:hover{color:var(--text)}
+  .nav-right{margin-left:auto;display:flex;align-items:center;gap:12px}
+  .ver{font-family:var(--mono);font-size:12px;color:var(--faint);border:1px solid var(--hair);padding:3px 8px;border-radius:999px}
+  .icon-btn{background:transparent;border:1px solid var(--hair);color:var(--muted);width:34px;height:34px;border-radius:9px;cursor:pointer;font-size:15px;display:grid;place-items:center}
+  .icon-btn:hover{color:var(--text);border-color:var(--accent)}
+
+  .btn{
+    display:inline-flex;align-items:center;gap:8px;font-weight:600;font-size:14.5px;
+    padding:10px 16px;border-radius:11px;cursor:pointer;border:1px solid transparent;
+    font-family:var(--sans);transition:transform .12s ease,background .15s ease,border-color .15s;
+  }
+  .btn:active{transform:translateY(1px)}
+  .btn-primary{background:var(--accent);color:var(--accent-ink)}
+  .btn-primary:hover{background:var(--accent-deep)}
+  .btn-ghost{background:transparent;color:var(--text);border-color:var(--hair)}
+  .btn-ghost:hover{border-color:var(--accent);color:var(--text)}
+  .nav .nav-links{display:none}
+  @media(min-width:860px){.nav .nav-links{display:flex}}
+
+  /* ---------- hero ---------- */
+  .hero{padding:72px 0 40px;position:relative}
+  .hero-grid{display:grid;gap:48px;align-items:center}
+  @media(min-width:920px){.hero-grid{grid-template-columns:1.05fr .95fr}}
+  h1{
+    font-size:clamp(2.5rem,6.2vw,4.4rem);line-height:1.02;letter-spacing:-.035em;
+    font-weight:800;margin:18px 0 0;text-wrap:balance;
+  }
+  .lede{font-size:clamp(1.05rem,2vw,1.25rem);color:var(--muted);max-width:33ch;margin:22px 0 0;text-wrap:pretty}
+  .hero-cta{display:flex;flex-wrap:wrap;gap:12px;margin-top:30px;align-items:center}
+  .badges{margin-top:26px;display:flex;flex-wrap:wrap;gap:8px 8px}
+  .badge{font-family:var(--mono);font-size:11.5px;color:var(--muted);border:1px solid var(--hair);border-radius:999px;padding:5px 11px}
+  .badge b{color:var(--text);font-weight:600}
+
+  /* copyable install pill */
+  .install{
+    display:inline-flex;align-items:center;gap:12px;background:var(--surface);
+    border:1px solid var(--hair);border-radius:12px;padding:9px 9px 9px 15px;
+    font-family:var(--mono);font-size:14.5px;box-shadow:var(--shadow);
+  }
+  .install .pfx{color:var(--accent)}
+  .install code{color:var(--text)}
+  .copy{margin-left:2px;background:var(--surface-2);border:1px solid var(--hair);color:var(--muted);
+    border-radius:8px;padding:6px 10px;font-family:var(--mono);font-size:12px;cursor:pointer;transition:.15s}
+  .copy:hover{color:var(--text);border-color:var(--accent)}
+  .copy.ok{color:var(--accent);border-color:var(--accent)}
+
+  /* ---------- app screenshot: topic readout ---------- */
+  .app{
+    background:var(--surface);border:1px solid var(--hair);border-radius:16px;
+    box-shadow:var(--shadow);overflow:hidden;
+  }
+  .app-bar{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--hair);background:var(--surface-2)}
+  .tl{width:11px;height:11px;border-radius:50%;background:var(--hair)}
+  .tl.a{background:#F5655B}.tl.b{background:#F5B93A}.tl.c{background:#4FB477}
+  .app-title{margin-left:8px;font-family:var(--mono);font-size:12px;color:var(--muted)}
+  .app-body{padding:18px 18px 20px}
+  .app-note{font-family:var(--mono);font-size:11px;color:var(--faint);margin:0 0 14px}
+  .topic{margin:0 0 15px}
+  .topic:last-child{margin-bottom:0}
+  .topic-h{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:9px}
+  .topic-h .t{font-family:var(--mono);font-size:12px;color:var(--muted)}
+  .topic-h .p{font-family:var(--mono);font-size:11px;color:var(--faint);font-variant-numeric:tabular-nums}
+  .words{display:flex;flex-direction:column;gap:6px}
+  .word{position:relative;display:flex;align-items:center;height:22px;padding-left:10px;font-size:13.5px}
+  .word .bar{position:absolute;inset:0;background:var(--swipe);border-radius:5px;transform-origin:left;transform:scaleX(var(--w,.5))}
+  .word span{position:relative;z-index:1}
+  .word b{position:relative;z-index:1;margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--faint);padding-right:8px;font-variant-numeric:tabular-nums}
+
+  /* ---------- trust strip ---------- */
+  .strip{border-top:1px solid var(--hair);border-bottom:1px solid var(--hair);margin-top:44px}
+  .strip-in{display:flex;flex-wrap:wrap;gap:10px 30px;padding:18px 0;align-items:center;justify-content:space-between}
+  .strip-item{font-family:var(--mono);font-size:13px;color:var(--muted);display:flex;align-items:center;gap:9px}
+  .strip-item b{color:var(--text);font-weight:700}
+  .strip-item .n{color:var(--accent);font-weight:700}
+
+  /* ---------- sections ---------- */
+  section{padding:78px 0}
+  .sec-head{max-width:60ch}
+  .sec-head h2{font-size:clamp(1.7rem,3.4vw,2.5rem);letter-spacing:-.03em;font-weight:800;margin:12px 0 0;text-wrap:balance}
+  .sec-head p{color:var(--muted);font-size:1.05rem;margin:14px 0 0}
+
+  .feat-grid{display:grid;gap:16px;margin-top:44px;grid-template-columns:repeat(1,1fr)}
+  @media(min-width:640px){.feat-grid{grid-template-columns:repeat(2,1fr)}}
+  @media(min-width:960px){.feat-grid{grid-template-columns:repeat(3,1fr)}}
+  .card{background:var(--surface);border:1px solid var(--hair);border-radius:14px;padding:22px;transition:border-color .18s,transform .18s}
+  .card:hover{border-color:color-mix(in srgb,var(--accent) 55%,var(--hair));transform:translateY(-2px)}
+  .card .lab{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-deep)}
+  .card h3{font-size:1.16rem;margin:12px 0 8px;letter-spacing:-.015em}
+  .card p{color:var(--muted);font-size:.96rem;margin:0}
+
+  /* ---------- code section ---------- */
+  .code-wrap{display:grid;gap:36px;align-items:center;margin-top:40px}
+  @media(min-width:920px){.code-wrap{grid-template-columns:.9fr 1.1fr}}
+  .code{background:var(--surface);border:1px solid var(--hair);border-radius:14px;overflow:hidden;box-shadow:var(--shadow)}
+  pre{margin:0;padding:20px 22px;overflow-x:auto;font-family:var(--mono);font-size:13px;line-height:1.7;color:var(--text)}
+  pre .c{color:var(--faint)}
+  pre .k{color:var(--accent-deep)}
+  pre .s{color:#8FBF7F}
+  .code-steps{display:flex;flex-direction:column;gap:18px}
+  .step{display:flex;gap:14px}
+  .step .m{font-family:var(--mono);color:var(--accent-deep);font-size:13px;font-weight:700;padding-top:2px;min-width:26px}
+  .step h4{margin:0 0 3px;font-size:1.02rem}
+  .step p{margin:0;color:var(--muted);font-size:.95rem}
+
+  /* ---------- models wall (periodic table of topic models) ---------- */
+  .legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:34px}
+  .chip{font-family:var(--mono);font-size:12px;color:var(--muted);background:var(--surface);border:1px solid var(--hair);
+    border-radius:999px;padding:6px 13px 6px 11px;cursor:pointer;transition:.15s;white-space:nowrap;display:inline-flex;align-items:center;gap:8px}
+  .chip .sw{width:9px;height:9px;border-radius:3px;background:var(--gc,var(--accent))}
+  .chip:hover{color:var(--text);border-color:var(--gc,var(--accent))}
+  .chip[aria-pressed="true"]{color:var(--text);border-color:var(--gc,var(--accent));background:color-mix(in srgb,var(--gc,var(--accent)) 15%,var(--surface));font-weight:600}
+  .chip[data-all][aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+
+  .wall{margin-top:26px;display:flex;flex-direction:column;gap:26px}
+  .block{scroll-margin-top:80px}
+  .block-head{display:flex;align-items:baseline;gap:12px;margin-bottom:12px;padding-bottom:9px;border-bottom:1px solid var(--hair)}
+  .block-head .gname{font-family:var(--mono);font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;font-weight:700;color:var(--gc);display:flex;align-items:center;gap:9px}
+  .block-head .gname::before{content:"";width:10px;height:10px;border-radius:3px;background:var(--gc)}
+  .block-head .gcount{font-family:var(--mono);font-size:11px;color:var(--faint)}
+  .tiles{display:grid;gap:10px;grid-template-columns:repeat(2,1fr)}
+  @media(min-width:600px){.tiles{grid-template-columns:repeat(3,1fr)}}
+  @media(min-width:960px){.tiles{grid-template-columns:repeat(4,1fr)}}
+
+  .tile{
+    position:relative;background:var(--surface);border:1px solid var(--hair);border-left:3px solid var(--gc);
+    border-radius:11px;padding:13px 13px 12px;overflow:hidden;
+    transition:transform .16s ease,border-color .16s,box-shadow .16s,opacity .3s;
+  }
+  .tile .idx{position:absolute;top:9px;right:11px;font-family:var(--mono);font-size:10px;color:var(--faint);font-variant-numeric:tabular-nums}
+  .tile .mname{font-family:var(--mono);font-weight:700;font-size:15px;letter-spacing:-.01em;padding-right:22px}
+  .tile .msum{margin:6px 0 0;color:var(--muted);font-size:.82rem;line-height:1.45;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .tile:hover{transform:translateY(-3px);border-color:var(--gc);box-shadow:0 16px 30px -20px color-mix(in srgb,var(--gc) 60%,transparent)}
+  .tile:hover .msum{-webkit-line-clamp:6}
+  /* legend highlight: dim the models not in the active group */
+  .wall.filtered .tile{opacity:.24;filter:saturate(.5)}
+  .wall.filtered .tile.hot{opacity:1;filter:none}
+  .wall.filtered .block.cold .block-head{opacity:.34}
+
+  /* staggered reveal on load */
+  .tile.pre{opacity:0;transform:translateY(10px)}
+  .tile.in{opacity:1;transform:none;transition:opacity .5s ease,transform .5s cubic-bezier(.2,.7,.2,1)}
+  .count-note{font-family:var(--mono);font-size:12px;color:var(--faint);margin-top:22px}
+
+  /* ---------- manifesto ---------- */
+  .manifesto{background:var(--surface);border:1px solid var(--hair);border-radius:14px;box-shadow:var(--shadow);overflow:hidden;margin-top:8px}
+  .manifesto .app-bar .app-title::before{content:"$ "}
+  .man-body{padding:26px 24px;font-family:var(--mono);font-size:14.5px;line-height:1.85}
+  .man-body p{margin:0 0 14px;color:var(--muted)}
+  .man-body p:last-child{margin:0}
+  .man-body .hl{color:var(--text)}
+  .man-body .caret{display:inline-block;width:9px;height:1.05em;background:var(--accent);vertical-align:-2px;margin-left:3px;animation:blink 1.15s step-end infinite}
+  @keyframes blink{50%{opacity:0}}
+
+  /* ---------- final cta ---------- */
+  .final{text-align:center;padding:96px 0}
+  .final h2{font-size:clamp(1.9rem,4vw,3rem);letter-spacing:-.03em;font-weight:800;margin:0 0 8px;text-wrap:balance}
+  .final p{color:var(--muted);margin:0 auto 30px;max-width:46ch}
+  .final .hero-cta{justify-content:center}
+
+  /* ---------- footer ---------- */
+  footer{border-top:1px solid var(--hair);padding:52px 0 40px}
+  .foot-grid{display:grid;gap:32px;grid-template-columns:1.4fr repeat(3,1fr)}
+  @media(max-width:720px){.foot-grid{grid-template-columns:1fr 1fr}}
+  .foot-brand p{color:var(--muted);font-size:.92rem;max-width:34ch;margin:12px 0 0}
+  .foot-col h5{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin:0 0 14px;font-weight:600}
+  .foot-col a{display:block;color:var(--muted);font-size:.94rem;margin-bottom:10px}
+  .foot-col a:hover{color:var(--accent)}
+  .foot-base{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;margin-top:44px;padding-top:22px;border-top:1px solid var(--hair);color:var(--faint);font-size:.86rem;font-family:var(--mono)}
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+    .hl-draw{background-size:100% .62em}
+  }
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <div class="wrap nav-in">
+    <a class="brand" href="#top">top<b>ic</b>a<span class="dot">.</span></a>
+    <nav class="nav-links">
+      <a href="#features">Why</a>
+      <a href="#start">Quick start</a>
+      <a href="#models">Models</a>
+      <a href="#manifesto">Manifesto</a>
+      <a href="https://nealcaren.github.io/topica/">Docs</a>
+    </nav>
+    <div class="nav-right">
+      <span class="ver">v0.34.0</span>
+      <button class="icon-btn" id="theme" aria-label="Toggle light and dark theme" title="Toggle theme">◐</button>
+      <a class="btn btn-primary" href="#start">Install</a>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+  <!-- HERO -->
+  <section class="hero">
+    <div class="wrap hero-grid">
+      <div>
+        <span class="kicker">Topic modeling for social science</span>
+        <h1>From a column of <span class="hl hl-draw">text</span> to publishable <span class="hl hl-draw">results</span>.</h1>
+        <p class="lede">Thirty-nine reference-validated topic models in one Python wheel. NumPy and pandas — no JVM, no PyTorch.</p>
+
+        <div class="hero-cta">
+          <div class="install">
+            <span class="pfx">$</span><code id="cmd">pip install topica</code>
+            <button class="copy" id="copy" aria-label="Copy install command">copy</button>
+          </div>
+          <a class="btn btn-ghost" href="https://nealcaren.github.io/topica/">Read the docs →</a>
+        </div>
+
+        <div class="badges">
+          <span class="badge"><b>Python 3.9+</b></span>
+          <span class="badge">macOS · Linux · Windows</span>
+          <span class="badge">one wheel · <b>no JVM</b></span>
+          <span class="badge">Apache-2.0</span>
+        </div>
+      </div>
+
+      <!-- illustrative "app screen": a topic readout -->
+      <div class="app" aria-label="Illustrative topica topic readout">
+        <div class="app-bar">
+          <span class="tl a"></span><span class="tl b"></span><span class="tl c"></span>
+          <span class="app-title">topica · summary(model) · LDA k=5</span>
+        </div>
+        <div class="app-body">
+          <p class="app-note"># top words per topic — bar width ∝ probability (illustrative)</p>
+
+          <div class="topic">
+            <div class="topic-h"><span class="t">topic 1 · economy</span><span class="p">prev 0.28</span></div>
+            <div class="words">
+              <div class="word" style="--w:1"><div class="bar"></div><span>jobs</span><b>.041</b></div>
+              <div class="word" style="--w:.82"><div class="bar"></div><span>wages</span><b>.034</b></div>
+              <div class="word" style="--w:.6"><div class="bar"></div><span>economy</span><b>.025</b></div>
+              <div class="word" style="--w:.44"><div class="bar"></div><span>workers</span><b>.018</b></div>
+            </div>
+          </div>
+
+          <div class="topic">
+            <div class="topic-h"><span class="t">topic 2 · border &amp; law</span><span class="p">prev 0.23</span></div>
+            <div class="words">
+              <div class="word" style="--w:1"><div class="bar"></div><span>border</span><b>.048</b></div>
+              <div class="word" style="--w:.74"><div class="bar"></div><span>law</span><b>.036</b></div>
+              <div class="word" style="--w:.55"><div class="bar"></div><span>legal</span><b>.027</b></div>
+              <div class="word" style="--w:.4"><div class="bar"></div><span>enforce</span><b>.020</b></div>
+            </div>
+          </div>
+
+          <div class="topic">
+            <div class="topic-h"><span class="t">topic 3 · family</span><span class="p">prev 0.19</span></div>
+            <div class="words">
+              <div class="word" style="--w:1"><div class="bar"></div><span>family</span><b>.039</b></div>
+              <div class="word" style="--w:.7"><div class="bar"></div><span>children</span><b>.028</b></div>
+              <div class="word" style="--w:.5"><div class="bar"></div><span>home</span><b>.021</b></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- trust strip -->
+    <div class="strip"><div class="wrap strip-in">
+      <span class="strip-item"><span class="n">39</span> validated models</span>
+      <span class="strip-item"><b>one</b> import, flat namespace</span>
+      <span class="strip-item">bit-exact &amp; <b>seed-reproducible</b> fits</span>
+      <span class="strip-item">checked vs <b>R stm</b>, MALLET, keyATM</span>
+    </div></div>
+  </section>
+
+  <!-- FEATURES -->
+  <section id="features">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="kicker">Why topica</span>
+        <h2>Everything reviewers ask for, in one install.</h2>
+        <p>General toolkits hand you topics. topica is built around the question social scientists ask next — how prevalence and content relate to covariates — with the validation and reporting to defend it.</p>
+      </div>
+
+      <div class="feat-grid">
+        <div class="card">
+          <span class="lab">The shelf</span>
+          <h3>39 models, one namespace</h3>
+          <p>LDA, STM, CTM, keyATM, SAGE, HDP, dynamic, neural, and embedding-based — models usually split across MALLET and R, all behind <code>import topica</code>.</p>
+        </div>
+        <div class="card">
+          <span class="lab">No heavy runtime</span>
+          <h3>A single wheel</h3>
+          <p>A Rust core with a NumPy-native API. It needs only NumPy and pandas — no Java, no PyTorch, no build step.</p>
+        </div>
+        <div class="card">
+          <span class="lab">Trust the fit</span>
+          <h3>Validated &amp; reproducible</h3>
+          <p>Every model is checked against its reference implementation. Variational fits are identical to the bit; samplers reproduce from a fixed seed and thread count.</p>
+        </div>
+        <div class="card">
+          <span class="lab">Covariates</span>
+          <h3>Effects, not just topics</h3>
+          <p>Relate topic prevalence and content to metadata with structural models and well-calibrated hypothesis tests — <code>estimate_effect</code> out of the box.</p>
+        </div>
+        <div class="card">
+          <span class="lab">Honest uncertainty</span>
+          <h3>An error bar on everything</h3>
+          <p>Standard errors and confidence intervals next to coefficients, coherence, correlations, and ideal-point positions — uncertainty is a first-class citizen.</p>
+        </div>
+        <div class="card">
+          <span class="lab">Your data</span>
+          <h3>DataFrame in, results out</h3>
+          <p><code>from_dataframe</code> keeps metadata aligned to the documents that survive pruning, so the same corpus feeds the model, the effects, and the report.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- QUICK START -->
+  <section id="start" style="background:var(--surface-2);border-top:1px solid var(--hair);border-bottom:1px solid var(--hair)">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="kicker">Quick start</span>
+        <h2>Runs exactly as written, right after install.</h2>
+        <p>On a bundled example dataset — no download, no API key, no configuration.</p>
+      </div>
+
+      <div class="code-wrap">
+        <div class="code-steps">
+          <div class="step"><span class="m">01</span><div><h4>Load &amp; build a corpus</h4><p>Point topica at a DataFrame column; stopwords and pruning are one argument each.</p></div></div>
+          <div class="step"><span class="m">02</span><div><h4>Fit a model</h4><p>Sensible defaults, no tuning required. Swap <code>LDA</code> for any of the 39.</p></div></div>
+          <div class="step"><span class="m">03</span><div><h4>Read &amp; relate</h4><p>Top words per topic, then relate prevalence to a covariate with a calibrated test.</p></div></div>
+        </div>
+
+        <div class="code">
+          <div class="app-bar">
+            <span class="tl a"></span><span class="tl b"></span><span class="tl c"></span>
+            <span class="app-title">quickstart.py</span>
+          </div>
+<pre><span class="k">import</span> topica
+
+df     = topica.datasets.load_gadarian()        <span class="c"># bundled, offline</span>
+corpus = topica.from_dataframe(
+    df, text_col=<span class="s">"open.ended.response"</span>,
+    stopwords=topica.ENGLISH_STOPWORDS,
+)
+
+model = topica.LDA(num_topics=<span class="s">5</span>, seed=<span class="s">42</span>)
+model.fit(corpus)
+<span class="k">print</span>(topica.summary(model))                  <span class="c"># top words</span>
+
+<span class="c"># relate topic prevalence to a covariate</span>
+stm = topica.STM(num_topics=<span class="s">5</span>, seed=<span class="s">42</span>)
+stm.fit(corpus, prevalence, prevalence_names=[<span class="s">"treatment"</span>])
+effect = topica.estimate_effect(draws, prevalence,
+                                feature_names=[<span class="s">"treatment"</span>])</pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MODELS BROWSER -->
+  <section id="models">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="kicker">The roster · all 39</span>
+        <h2>A periodic table of topic models.</h2>
+        <p>The whole shelf on one screen, grouped by what you bring and what you want — not by inference family. Tap a group to light it up; hover any tile for the one-liner.</p>
+      </div>
+
+      <div class="legend" id="legend" role="group" aria-label="Highlight models by group"></div>
+      <div class="wall" id="wall"></div>
+      <p class="count-note" id="countNote"></p>
+    </div>
+  </section>
+
+  <!-- MANIFESTO -->
+  <section id="manifesto" style="background:var(--surface-2);border-top:1px solid var(--hair);border-bottom:1px solid var(--hair)">
+    <div class="wrap">
+      <div class="sec-head"><span class="kicker">Manifesto</span><h2>Built for the paper, not the demo.</h2></div>
+      <div class="manifesto">
+        <div class="app-bar">
+          <span class="tl a"></span><span class="tl b"></span><span class="tl c"></span>
+          <span class="app-title">cat manifesto.txt</span>
+        </div>
+        <div class="man-body">
+          <p>A topic model is only as good as what you can <span class="hl">defend</span> about it.</p>
+          <p>So topica ships the boring parts that make a finding hold up: every model checked against its <span class="hl">reference implementation</span>, fits that <span class="hl">reproduce</span> from a seed, an error bar next to every estimate, and a straight line from your DataFrame to the effect you report.</p>
+          <p>No JVM to install. No cluster to rent. No black box to apologize for. Open source, Apache-2.0, and made for the questions computational social scientists actually ask.<span class="caret" aria-hidden="true"></span></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FINAL CTA -->
+  <section class="final">
+    <div class="wrap">
+      <span class="kicker">Get it</span>
+      <h2>Install topica.</h2>
+      <p>One wheel, thirty-nine models, and the reporting tools to back them up.</p>
+      <div class="hero-cta">
+        <div class="install">
+          <span class="pfx">$</span><code>pip install topica</code>
+          <button class="copy" id="copy2" aria-label="Copy install command">copy</button>
+        </div>
+        <a class="btn btn-ghost" href="https://github.com/nealcaren/topica">Star on GitHub ★</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div class="foot-brand">
+        <a class="brand" href="#top">top<b>ic</b>a<span class="dot">.</span></a>
+        <p>A fast, all-purpose topic-modeling library for Python, built for computational social scientists.</p>
+      </div>
+      <div class="foot-col">
+        <h5>Install</h5>
+        <a href="https://pypi.org/project/topica/">PyPI</a>
+        <a href="https://nealcaren.github.io/topica/getting-started/quickstart/">Quick start</a>
+        <a href="https://nealcaren.github.io/topica/">Documentation</a>
+      </div>
+      <div class="foot-col">
+        <h5>Learn</h5>
+        <a href="https://nealcaren.github.io/topica/examples/dubois/">Worked examples</a>
+        <a href="https://nealcaren.github.io/topica/guides/models/">Model guide</a>
+        <a href="https://nealcaren.github.io/topica/guides/covariates/">Covariate effects</a>
+      </div>
+      <div class="foot-col">
+        <h5>Source</h5>
+        <a href="https://github.com/nealcaren/topica">GitHub</a>
+        <a href="https://github.com/nealcaren/topica/issues">Issues</a>
+        <a href="https://github.com/nealcaren/topica/blob/main/LICENSE">License</a>
+      </div>
+    </div>
+    <div class="foot-base">
+      <span>© 2026 Neal Caren · Apache-2.0</span>
+      <span>Rust core · PyO3 · NumPy-native</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  // ---- theme toggle: OS default, explicit override persisted ----
+  var root=document.documentElement, KEY="topica-theme";
+  try{var saved=localStorage.getItem(KEY); if(saved) root.setAttribute("data-theme",saved);}catch(e){}
+  document.getElementById("theme").addEventListener("click",function(){
+    var cur=root.getAttribute("data-theme");
+    if(!cur){cur=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}
+    var next=cur==="dark"?"light":"dark";
+    root.setAttribute("data-theme",next);
+    try{localStorage.setItem(KEY,next);}catch(e){}
+  });
+
+  // ---- copy install ----
+  function wireCopy(btn){
+    if(!btn) return;
+    btn.addEventListener("click",function(){
+      var t="pip install topica";
+      (navigator.clipboard&&navigator.clipboard.writeText(t)||Promise.reject()).then(done,function(){
+        var ta=document.createElement("textarea");ta.value=t;document.body.appendChild(ta);ta.select();
+        try{document.execCommand("copy");done();}catch(e){}document.body.removeChild(ta);
+      });
+      function done(){var o=btn.textContent;btn.textContent="copied ✓";btn.classList.add("ok");
+        setTimeout(function(){btn.textContent=o;btn.classList.remove("ok");},1600);}
+    });
+  }
+  wireCopy(document.getElementById("copy"));
+  wireCopy(document.getElementById("copy2"));
+
+  // ---- hero highlighter swipe on load ----
+  requestAnimationFrame(function(){setTimeout(function(){
+    document.querySelectorAll(".hl-draw").forEach(function(el,i){setTimeout(function(){el.classList.add("on");},120*i);});
+  },260);});
+
+  // ---- models wall (real roster, all 39) ----
+  // group -> [label, categorical color]. Amber stays the brand; the rest are a
+  // muted, equal-weight set so the wall reads as a designed catalog, not a rainbow.
+  var GROUPS=[
+    ["General-purpose","#F5B93A"],
+    ["Covariates & structure","#EC7A5C"],
+    ["Guided & supervised","#5EB971"],
+    ["Short text","#35B7B0"],
+    ["Dynamic & hierarchical","#9B85E8"],
+    ["Embedding-based","#5B8DEF"],
+    ["Ideal point","#E06CA6"],
+    ["LLM-based","#8C93A6"]
+  ];
+  var GC={}; GROUPS.forEach(function(g){GC[g[0]]=g[1];});
+  var M=[
+    ["LDA","General-purpose","Classic latent Dirichlet allocation via a fast SparseLDA collapsed-Gibbs sampler."],
+    ["CTM","General-purpose","Correlated topic model: a logistic-normal prior that lets topics co-occur."],
+    ["ProdLDA","General-purpose","Product-of-experts LDA (AVITM) for sharper topics; a hand-coded VAE."],
+    ["HDP","General-purpose","Hierarchical Dirichlet process: infers the number of topics from the data."],
+    ["NMF","General-purpose","Non-negative matrix factorization of the document-term matrix."],
+    ["LSA","General-purpose","Latent semantic analysis: a truncated SVD of the weighted term matrix."],
+    ["AnchorLDA","General-purpose","Anchor-words spectral recovery (Arora 2013): deterministic, Gibbs-free."],
+    ["TensorLDA","General-purpose","Online tensor LDA: a deterministic method-of-moments topic model."],
+    ["STM","Covariates & structure","Structural topic model: relate prevalence and content to covariates."],
+    ["STS","Covariates & structure","Structural topic-and-sentiment model over document metadata."],
+    ["SAGE","Covariates & structure","Sparse additive generative model: one topic worded differently across groups."],
+    ["ECTM","Covariates & structure","Evolving content model: content covariates that drift across time."],
+    ["DMR","Covariates & structure","Dirichlet-multinomial regression: a metadata prior on topic proportions."],
+    ["GDMR","Covariates & structure","Generalized DMR with a smooth prior over continuous covariates."],
+    ["NarrativeTM","Covariates & structure","Captures how topic prevalence shifts across a document's narrative."],
+    ["KeyATM","Guided & supervised","Keyword-assisted topics: anchor named topics with a few seed words."],
+    ["SeededLDA","Guided & supervised","Seeded LDA: steer named topics toward supplied seed words."],
+    ["LabeledLDA","Guided & supervised","Labeled LDA: each document label is a topic."],
+    ["SupervisedLDA","Guided & supervised","Topics shaped to predict a per-document real-valued response."],
+    ["GSDMM","Short text","Gibbs-sampling Dirichlet mixture: one topic per short document."],
+    ["PT","Short text","Pseudo-document topic model: pool short texts into pseudo-documents."],
+    ["DTM","Dynamic & hierarchical","Dynamic topic model: word distributions drift across time slices."],
+    ["DETM","Dynamic & hierarchical","Dynamic embedded topic model: embedding-factored topics over time."],
+    ["HLDA","Dynamic & hierarchical","Hierarchical LDA (nested CRP): a learned tree of super- and sub-topics."],
+    ["PA","Dynamic & hierarchical","Pachinko allocation: a DAG of super- and sub-topics."],
+    ["BERTopic","Embedding-based","Cluster document embeddings; label topics by class-based TF-IDF."],
+    ["Top2Vec","Embedding-based","Topics as dense regions in a joint document-word embedding space."],
+    ["ETM","Embedding-based","Embedded topic model: topic-word distributions through word embeddings."],
+    ["IdealPointTM","Embedding-based","Topic model with a latent ideal-point head per author."],
+    ["IdealPointSentenceTM","Embedding-based","Continuous ideal points over sentence/document embeddings."],
+    ["FASTopic","Embedding-based","Topics from optimal-transport plans between document/topic/word embeddings."],
+    ["EmbeddingLDA","Embedding-based","Seeded LDA whose seeds expand with embedding neighbors."],
+    ["CombinedTM","Embedding-based","Contextualized ProdLDA: bag of words plus a document embedding."],
+    ["ZeroShotTM","Embedding-based","Contextualized ProdLDA from the embedding alone; cross-lingual."],
+    ["InfoCTM","Embedding-based","Cross-lingual: two ProdLDA models aligned by a bilingual dictionary."],
+    ["Wordfish","Ideal point","Poisson scaling (Slapin & Proksch 2008): unsupervised 1-D ideal points."],
+    ["TBIP","Ideal point","Text-Based Ideal Points (Vafa, Naidu & Blei 2020)."],
+    ["PartyEmbeddings","Ideal point","Party embeddings (Rheault & Cochrane 2020): a PV-DM model."],
+    ["TopicGPT","LLM-based","LLM-driven discovery: prompt a model to build and assign a taxonomy."]
+  ];
+  var wall=document.getElementById("wall"), legend=document.getElementById("legend"), note=document.getElementById("countNote");
+  var active="All";
+
+  function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;");}
+
+  // build one block per group, all tiles visible
+  var idx=0;
+  GROUPS.forEach(function(g){
+    var label=g[0], color=g[1];
+    var items=M.filter(function(m){return m[1]===label;});
+    var block=document.createElement("div");
+    block.className="block";block.dataset.group=label;block.style.setProperty("--gc",color);
+    var tiles='';
+    items.forEach(function(m){
+      idx++;
+      var n=(idx<10?"0":"")+idx;
+      tiles+='<div class="tile pre" data-group="'+label+'" title="'+esc(m[2])+'">'+
+        '<span class="idx">'+n+'</span>'+
+        '<div class="mname">'+esc(m[0])+'</div>'+
+        '<p class="msum">'+esc(m[2])+'</p></div>';
+    });
+    block.innerHTML='<div class="block-head"><span class="gname">'+esc(label)+
+      '</span><span class="gcount">'+items.length+' model'+(items.length>1?'s':'')+'</span></div>'+
+      '<div class="tiles">'+tiles+'</div>';
+    wall.appendChild(block);
+  });
+
+  function setActive(label){
+    active=label;
+    var filtered=label!=="All";
+    wall.classList.toggle("filtered",filtered);
+    [].forEach.call(wall.querySelectorAll(".tile"),function(t){
+      t.classList.toggle("hot",filtered&&t.dataset.group===label);
+    });
+    [].forEach.call(wall.querySelectorAll(".block"),function(b){
+      b.classList.toggle("cold",filtered&&b.dataset.group!==label);
+    });
+    [].forEach.call(legend.children,function(c){c.setAttribute("aria-pressed",c.dataset.label===label?"true":"false");});
+    note.textContent=filtered
+      ? M.filter(function(m){return m[1]===label;}).length+" of "+M.length+" models · "+label
+      : "All "+M.length+" models, across "+GROUPS.length+" families";
+  }
+
+  function mkChip(label,color,isAll){
+    var b=document.createElement("button");b.className="chip";b.dataset.label=label;
+    if(isAll)b.setAttribute("data-all","");
+    if(color)b.style.setProperty("--gc",color);
+    b.innerHTML=(color?'<span class="sw"></span>':'')+esc(isAll?"All 39":label);
+    b.setAttribute("aria-pressed",label===active?"true":"false");
+    b.addEventListener("click",function(){setActive(active===label&&!isAll?"All":label);});
+    return b;
+  }
+  legend.appendChild(mkChip("All",null,true));
+  GROUPS.forEach(function(g){legend.appendChild(mkChip(g[0],g[1],false));});
+  setActive("All");
+
+  // staggered reveal on load (respects reduced-motion via the CSS media query)
+  var tiles=[].slice.call(wall.querySelectorAll(".tile"));
+  if(matchMedia("(prefers-reduced-motion: reduce)").matches){
+    tiles.forEach(function(t){t.classList.remove("pre");t.classList.add("in");});
+  }else{
+    tiles.forEach(function(t,i){setTimeout(function(){t.classList.remove("pre");t.classList.add("in");},260+i*22);});
+  }
+})();
+</script>
+</body>
+</html>
