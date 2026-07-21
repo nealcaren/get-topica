@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>topica — $</title>
+<meta name="description" content="topica in a terminal: install, fit a topic model, and read covariate effects with confidence intervals. A real session, replayed.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%230A0806'/%3E%3Ctext x='2' y='12' font-family='monospace' font-size='11' fill='%23FFB84D'%3E%24_%3C/text%3E%3C/svg%3E">
+<style>
+  /* A committed single world: an amber-phosphor CRT. No light theme — a
+     terminal doesn't have one. Amber (not the cliché green) keeps the brand. */
+  :root{
+    --bg:#0A0806;          /* warm near-black */
+    --screen:#0E0B07;      /* the glass */
+    --amber:#FFB84D;       /* bright phosphor — prompts, keys */
+    --amber-hi:#FFD79A;    /* highlight */
+    --fg:#E9D8AE;          /* normal output */
+    --dim:#9A7B44;         /* comments, chrome, secondary */
+    --faint:#5F4E2C;       /* borders, ghosts */
+    --mono:"SF Mono","JetBrains Mono","Cascadia Code","DejaVu Sans Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;background:
+      radial-gradient(120% 90% at 50% 0%, #14100A 0%, var(--bg) 60%, #060504 100%);
+    color:var(--fg);font-family:var(--mono);font-size:15px;line-height:1.62;
+    letter-spacing:.02em;-webkit-font-smoothing:antialiased;
+    display:flex;flex-direction:column;align-items:center;
+    padding:clamp(14px,4vw,44px);min-height:100%;
+  }
+  a{color:inherit;text-decoration:none}
+  :focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+
+  .term{
+    width:min(880px,100%);background:var(--screen);
+    border:1px solid var(--faint);border-radius:10px;
+    box-shadow:0 0 0 1px rgba(255,184,77,.06), 0 30px 80px -30px rgba(0,0,0,.9),
+               0 0 90px -40px rgba(255,150,40,.35);
+    overflow:hidden;position:relative;
+  }
+  /* scanlines + subtle flicker over the whole glass */
+  .term::after{
+    content:"";position:absolute;inset:0;pointer-events:none;z-index:5;
+    background:repeating-linear-gradient(0deg, rgba(0,0,0,.16) 0 1px, transparent 1px 3px);
+    mix-blend-mode:multiply;animation:flick 6s steps(60) infinite;
+  }
+  @keyframes flick{0%,100%{opacity:.6}48%{opacity:.72}50%{opacity:.5}}
+
+  .bar{
+    display:flex;align-items:center;gap:8px;padding:11px 14px;
+    background:#120D08;border-bottom:1px solid var(--faint);position:relative;z-index:6;
+  }
+  .dot{width:11px;height:11px;border-radius:50%;background:var(--faint)}
+  .dot.r{background:#C0592E}.dot.y{background:#C08A2E}.dot.g{background:#5E7A34}
+  .bar .title{margin-left:8px;color:var(--dim);font-size:12.5px}
+  .bar .ctrl{margin-left:auto;display:flex;gap:6px}
+  .bar button, .bar a.ctrl-a{
+    background:transparent;border:1px solid var(--faint);color:var(--dim);
+    font-family:var(--mono);font-size:11.5px;padding:4px 9px;border-radius:6px;cursor:pointer;
+  }
+  .bar button:hover, .bar a.ctrl-a:hover{color:var(--amber);border-color:var(--amber)}
+
+  .screen{
+    padding:18px 20px 22px;min-height:60vh;max-height:78vh;overflow:auto;
+    position:relative;z-index:6;text-shadow:0 0 3px rgba(255,170,60,.18);
+    white-space:pre;scrollbar-width:thin;scrollbar-color:var(--faint) transparent;
+  }
+  .screen::-webkit-scrollbar{width:8px;height:8px}
+  .screen::-webkit-scrollbar-thumb{background:var(--faint);border-radius:8px}
+  .line{white-space:pre;word-break:normal}
+  .p-sh{color:var(--amber);font-weight:700}
+  .p-py{color:var(--amber)}
+  .c-sh,.c-py{color:var(--amber-hi)}
+  .c-res{color:var(--fg)}
+  .c-sys{color:var(--dim)}
+  .c-dim{color:var(--dim)}
+  .c-ok{color:var(--amber);font-weight:700}
+  .c-cmt{color:var(--dim);font-style:italic}
+  .c-star{color:var(--amber);font-weight:700}
+  .tail{color:var(--dim)}
+  .cursor{display:inline-block;width:.62em;height:1.05em;background:var(--amber);
+    vertical-align:-2px;margin-left:1px;box-shadow:0 0 6px rgba(255,184,77,.7);animation:blink 1.05s steps(1) infinite}
+  @keyframes blink{50%{opacity:0}}
+
+  .foot{
+    width:min(880px,100%);margin-top:16px;display:flex;flex-wrap:wrap;gap:12px 18px;
+    align-items:center;color:var(--dim);font-size:13px;
+  }
+  .foot .pill{display:inline-flex;align-items:center;gap:10px;border:1px solid var(--faint);
+    border-radius:8px;padding:7px 8px 7px 12px;color:var(--fg)}
+  .foot .pill .d{color:var(--amber)}
+  .foot .pill button{background:#151009;border:1px solid var(--faint);color:var(--dim);
+    font-family:var(--mono);font-size:11.5px;padding:5px 9px;border-radius:6px;cursor:pointer}
+  .foot .pill button:hover,.foot .pill button.ok{color:var(--amber);border-color:var(--amber)}
+  .foot nav{display:flex;flex-wrap:wrap;gap:4px 16px;margin-left:auto}
+  .foot nav a{color:var(--dim)}
+  .foot nav a::before{content:"$ ";color:var(--faint)}
+  .foot nav a:hover{color:var(--amber)}
+
+  @media (prefers-reduced-motion: reduce){
+    .term::after{animation:none}
+    .cursor{animation:none}
+  }
+  @media (max-width:560px){ body{font-size:13px} .screen{padding:14px} }
+</style>
+</head>
+<body>
+  <main class="term" aria-label="topica terminal session">
+    <div class="bar">
+      <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+      <span class="title">topica — python3 — ~/research</span>
+      <span class="ctrl">
+        <button id="skip">skip &#9193;</button>
+        <button id="replay">replay &#8635;</button>
+        <a class="ctrl-a" href="../">full site &#8599;</a>
+      </span>
+    </div>
+    <div class="screen" id="screen" tabindex="0" role="log" aria-live="polite"></div>
+  </main>
+
+  <div class="foot">
+    <span class="pill"><span class="d">$</span> <code>pip install topica</code>
+      <button id="copy" aria-label="Copy install command">copy</button></span>
+    <nav>
+      <a href="https://nealcaren.github.io/topica/">docs</a>
+      <a href="https://github.com/nealcaren/topica">source</a>
+      <a href="https://pypi.org/project/topica/">pypi</a>
+    </nav>
+  </div>
+
+<script>
+(function(){
+  var reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var screen = document.getElementById("screen");
+
+  // A real topica session (output captured from an actual run on the bundled
+  // Gadarian immigration experiment; numbers are genuine).
+  var SESSION = [
+    {c:"sh",  t:"pip install topica"},
+    {c:"sys", t:"Collecting topica ... building wheel"},
+    {c:"ok",  t:"✓ Successfully installed topica-0.34.0"},
+    {c:"gap"},
+    {c:"sh",  t:"python"},
+    {c:"dim", t:"Python 3.13 · topica 0.34.0 · NumPy + pandas, no JVM"},
+    {c:"py",  t:"import topica"},
+    {c:"py",  t:"df = topica.datasets.load_gadarian()"},
+    {c:"py",  t:"corpus = topica.from_dataframe(df, \"open.ended.response\","},
+    {c:"pyc", t:"                    stopwords=topica.ENGLISH_STOPWORDS)"},
+    {c:"py",  t:"corpus"},
+    {c:"res", t:"Corpus(num_docs=341, num_words=1397, total_tokens=4171)"},
+    {c:"py",  t:"model = topica.LDA(num_topics=5, seed=42)"},
+    {c:"py",  t:"model.fit(corpus)", tail:"   # ~160 ms, single core"},
+    {c:"py",  t:"print(topica.summary(model))"},
+    {c:"res", t:"LDA(num_topics=5, beta=0.01, fitted=true)", pause:650},
+    {c:"res", t:"  topic 0  people country think english come work"},
+    {c:"res", t:"  topic 1  laws issue law deported books immigrant"},
+    {c:"res", t:"  topic 2  jobs americans illegals security welfare"},
+    {c:"res", t:"  topic 3  children worries state racism worry"},
+    {c:"res", t:"  topic 4  illegal immigrants immigration legal need"},
+    {c:"gap"},
+    {c:"cmt", t:"# relate topic prevalence to a covariate — with a CI"},
+    {c:"py",  t:"X = corpus.metadata[[\"treatment\"]].to_numpy(float)"},
+    {c:"py",  t:"stm = topica.STM(num_topics=5, seed=42)"},
+    {c:"py",  t:"stm.fit(corpus, X, prevalence_names=[\"treatment\"])"},
+    {c:"py",  t:"draws = topica.posterior_theta_samples(stm, nsims=200)"},
+    {c:"py",  t:"topica.estimate_effect(draws, X)"},
+    {c:"res", t:"  topic                     effect     95% CI", pause:700},
+    {c:"star",t:"  jobs, security            +0.14   [ 0.07,  0.21]  *"},
+    {c:"star",t:"  country, think            -0.07   [-0.14, -0.00]  *"},
+    {c:"res", t:"  immigrants, immigration   +0.03   [-0.02,  0.09]"},
+    {c:"res", t:"  illegals, benefits        -0.05   [-0.12,  0.01]"},
+    {c:"res", t:"  illegal, legal            -0.05   [-0.11,  0.01]"},
+    {c:"gap"},
+    {c:"cmt", t:"#  * = 95% CI excludes zero. two topics move under treatment."},
+    {c:"py",  t:"exit()"},
+    {c:"end"}
+  ];
+  var PROMPT = {sh:"$ ", py:">>> ", pyc:"... ", cmt:">>> ", end:"$ "};
+  var TYPED  = {sh:1, py:1, pyc:1, cmt:1};
+
+  var cursor = null, token = 0;
+  function sleep(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
+  function atBottom(){ screen.scrollTop = screen.scrollHeight; }
+  function esc(s){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;"); }
+
+  function newCursor(){
+    var c = document.createElement("span"); c.className = "cursor"; return c;
+  }
+
+  async function typeLine(line, tok){
+    var div = document.createElement("div"); div.className = "line";
+    var prompt = PROMPT[line.c] || "";
+    if(prompt){
+      var ps = document.createElement("span");
+      ps.className = (line.c==="sh"?"p-sh":"p-py"); ps.textContent = prompt;
+      div.appendChild(ps);
+    }
+    var txt = document.createElement("span");
+    txt.className = "c-" + (line.c==="pyc"?"py":line.c);
+    div.appendChild(txt);
+    screen.appendChild(div);
+    if(cursor) div.appendChild(cursor);
+    atBottom();
+
+    var s = line.t || "";
+    if(TYPED[line.c] && !reduce){
+      for(var i=0;i<s.length;i++){
+        if(tok!==token) return;
+        txt.textContent += s[i];
+        atBottom();
+        await sleep(16 + Math.random()*46 + (s[i]===" "?8:0));
+      }
+    } else {
+      txt.textContent = s;
+    }
+    if(line.tail){
+      var tl = document.createElement("span"); tl.className="tail"; tl.textContent=line.tail;
+      div.appendChild(tl); if(cursor) div.appendChild(cursor);
+    }
+    atBottom();
+  }
+
+  async function run(){
+    var tok = ++token;
+    screen.innerHTML = "";
+    cursor = newCursor();
+    for(var i=0;i<SESSION.length;i++){
+      if(tok!==token) return;
+      var line = SESSION[i];
+      if(line.c==="gap"){ screen.appendChild(document.createElement("br")); atBottom();
+        if(!reduce) await sleep(120); continue; }
+      if(line.c==="end"){
+        var d=document.createElement("div"); d.className="line";
+        var ps=document.createElement("span"); ps.className="p-sh"; ps.textContent="$ ";
+        d.appendChild(ps); d.appendChild(cursor); screen.appendChild(d); atBottom();
+        return;
+      }
+      await typeLine(line, tok);
+      if(tok!==token) return;
+      if(!reduce){
+        var base = TYPED[line.c] ? 210 : 40;
+        await sleep(base + (line.pause||0) + Math.random()*90);
+      }
+    }
+  }
+
+  document.getElementById("skip").addEventListener("click", function(){
+    token++;                     // cancel current run
+    reduce = true; run();        // re-render instantly
+    reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  });
+  document.getElementById("replay").addEventListener("click", function(){
+    reduce = matchMedia("(prefers-reduced-motion: reduce)").matches; run();
+  });
+
+  // copy install
+  var copy = document.getElementById("copy");
+  copy.addEventListener("click", function(){
+    var t="pip install topica";
+    (navigator.clipboard && navigator.clipboard.writeText(t) || Promise.reject()).then(ok,function(){
+      var ta=document.createElement("textarea");ta.value=t;document.body.appendChild(ta);ta.select();
+      try{document.execCommand("copy");ok();}catch(e){}document.body.removeChild(ta);
+    });
+    function ok(){var o=copy.textContent;copy.textContent="copied ✓";copy.classList.add("ok");
+      setTimeout(function(){copy.textContent=o;copy.classList.remove("ok");},1500);}
+  });
+
+  run();
+})();
+</script>
+</body>
+</html>
