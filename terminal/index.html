@@ -27,7 +27,7 @@
     color:var(--fg);font-family:var(--mono);font-size:15px;line-height:1.62;
     letter-spacing:.02em;-webkit-font-smoothing:antialiased;
     display:flex;flex-direction:column;align-items:center;
-    padding:clamp(14px,4vw,44px);min-height:100%;
+    padding:clamp(14px,4vw,44px);height:100%;min-height:0;
   }
   a{color:inherit;text-decoration:none}
   :focus-visible{outline:2px solid var(--amber);outline-offset:2px}
@@ -38,6 +38,9 @@
     box-shadow:0 0 0 1px rgba(255,184,77,.06), 0 30px 80px -30px rgba(0,0,0,.9),
                0 0 90px -40px rgba(255,150,40,.35);
     overflow:hidden;position:relative;
+    /* fill the space between the top padding and the footer; the screen
+       scrolls internally so the session never runs under the viewport edge */
+    flex:1 1 auto;min-height:0;display:flex;flex-direction:column;
   }
   /* scanlines + subtle flicker over the whole glass */
   .term::after{
@@ -62,7 +65,7 @@
   .bar button:hover, .bar a.ctrl-a:hover{color:var(--amber);border-color:var(--amber)}
 
   .screen{
-    padding:18px 20px 22px;min-height:60vh;max-height:78vh;overflow:auto;
+    padding:18px 20px 22px;flex:1 1 auto;min-height:0;overflow:auto;
     position:relative;z-index:6;text-shadow:0 0 3px rgba(255,170,60,.18);
     white-space:pre;scrollbar-width:thin;scrollbar-color:var(--faint) transparent;
   }
@@ -78,6 +81,13 @@
   .c-ok{color:var(--amber);font-weight:700}
   .c-cmt{color:var(--dim);font-style:italic}
   .c-star{color:var(--amber);font-weight:700}
+  .c-fig{color:var(--fg)}
+  .c-fig .bar-f{color:var(--amber)}      /* filled bar */
+  .c-fig .bar-e{color:var(--faint)}      /* empty bar */
+  .c-fig .mk{color:var(--amber-hi);font-weight:700} /* markers, points */
+  .c-fig .ax{color:var(--dim)}           /* axes, ticks, labels */
+  .c-fig .sig{color:var(--amber);font-weight:700}   /* significant CI */
+  .c-fig .ns{color:var(--dim)}           /* non-significant CI */
   .tail{color:var(--dim)}
   .cursor{display:inline-block;width:.62em;height:1.05em;background:var(--amber);
     vertical-align:-2px;margin-left:1px;box-shadow:0 0 6px rgba(255,184,77,.7);animation:blink 1.05s steps(1) infinite}
@@ -85,7 +95,7 @@
 
   .foot{
     width:min(880px,100%);margin-top:16px;display:flex;flex-wrap:wrap;gap:12px 18px;
-    align-items:center;color:var(--dim);font-size:13px;
+    align-items:center;color:var(--dim);font-size:13px;flex:none;
   }
   .foot .pill{display:inline-flex;align-items:center;gap:10px;border:1px solid var(--faint);
     border-radius:8px;padding:7px 8px 7px 12px;color:var(--fg)}
@@ -149,37 +159,80 @@
     {c:"pyc", t:"                    stopwords=topica.ENGLISH_STOPWORDS)"},
     {c:"py",  t:"corpus"},
     {c:"res", t:"Corpus(num_docs=341, num_words=1397, total_tokens=4171)"},
+    {c:"gap"},
+
+    {c:"cmt", t:"# 1 · a plain topic model — sort words into topics"},
     {c:"py",  t:"model = topica.LDA(num_topics=5, seed=42)"},
     {c:"py",  t:"model.fit(corpus)", tail:"   # ~160 ms, single core"},
     {c:"py",  t:"print(topica.summary(model))"},
-    {c:"res", t:"LDA(num_topics=5, beta=0.01, fitted=true)", pause:650},
+    {c:"res", t:"LDA(num_topics=5, beta=0.01, fitted=true)", pause:500},
     {c:"res", t:"  topic 0  people country think english come work"},
     {c:"res", t:"  topic 1  laws issue law deported books immigrant"},
     {c:"res", t:"  topic 2  jobs americans illegals security welfare"},
     {c:"res", t:"  topic 3  children worries state racism worry"},
     {c:"res", t:"  topic 4  illegal immigrants immigration legal need"},
     {c:"gap"},
-    {c:"cmt", t:"# relate topic prevalence to a covariate — with a CI"},
+    {c:"py",  t:"topica.plot_prevalence(model)", tail:"   # share of the corpus"},
+    {c:"fig", pause:160, html:true, t:'  0  people country   <span class="bar-f">█████████████████████</span><span class="bar-e">░░</span>  0.28'},
+    {c:"fig", html:true, t:'  1  laws law         <span class="bar-f">██████████████████</span><span class="bar-e">░░░░░</span>  0.23'},
+    {c:"fig", html:true, t:'  2  jobs security    <span class="bar-f">███████████████</span><span class="bar-e">░░░░░░░░</span>  0.19'},
+    {c:"fig", html:true, t:'  3  children worry   <span class="bar-f">████████████</span><span class="bar-e">░░░░░░░░░░░</span>  0.16'},
+    {c:"fig", html:true, t:'  4  illegal legal    <span class="bar-f">███████████</span><span class="bar-e">░░░░░░░░░░░░</span>  0.14'},
+    {c:"gap"},
+
+    {c:"cmt", t:"# 2 · a structural model — relate a topic to a covariate, with a CI"},
     {c:"py",  t:"X = corpus.metadata[[\"treatment\"]].to_numpy(float)"},
     {c:"py",  t:"stm = topica.STM(num_topics=5, seed=42)"},
     {c:"py",  t:"stm.fit(corpus, X, prevalence_names=[\"treatment\"])"},
     {c:"py",  t:"draws = topica.posterior_theta_samples(stm, nsims=200)"},
-    {c:"py",  t:"topica.estimate_effect(draws, X)"},
-    {c:"res", t:"  topic                     effect     95% CI", pause:700},
-    {c:"star",t:"  jobs, security            +0.14   [ 0.07,  0.21]  *"},
-    {c:"star",t:"  country, think            -0.07   [-0.14, -0.00]  *"},
-    {c:"res", t:"  immigrants, immigration   +0.03   [-0.02,  0.09]"},
-    {c:"res", t:"  illegals, benefits        -0.05   [-0.12,  0.01]"},
-    {c:"res", t:"  illegal, legal            -0.05   [-0.11,  0.01]"},
+    {c:"py",  t:"eff = topica.estimate_effect(draws, X)"},
+    {c:"py",  t:"topica.plot_effect(eff)", tail:"   # treatment − control"},
+    {c:"fig", pause:220, html:true, t:'                  <span class="ax">    -0.1      0.0      +0.1      +0.2</span>'},
+    {c:"fig", html:true, t:'                  <span class="ax">     |         |         |         |</span>'},
+    {c:"fig", html:true, t:'  jobs, security  <span class="sig">               ┊      ├──────●──────┤   </span>  <span class="sig">+0.14 *</span>'},
+    {c:"fig", html:true, t:'  country, think  <span class="sig"> ├──────●──────┤                        </span>  <span class="sig">-0.07 *</span>'},
+    {c:"fig", html:true, t:'  immigrants      <span class="ns">             ├────●─────┤               </span>  <span class="ns">+0.03</span>'},
+    {c:"fig", html:true, t:'  illegals        <span class="ns">   ├──────●─────┤                       </span>  <span class="ns">-0.05</span>'},
+    {c:"fig", html:true, t:'  illegal, legal  <span class="ns">    ├─────●─────┤                       </span>  <span class="ns">-0.05</span>'},
+    {c:"cmt", t:"#  ● estimate   ├─┤ 95% CI   ┊ 0 = no effect   * = CI excludes 0"},
     {c:"gap"},
-    {c:"cmt", t:"#  * = 95% CI excludes zero. two topics move under treatment."},
+
+    {c:"cmt", t:"# 3 · don't want to guess k? a nonparametric model infers it"},
+    {c:"py",  t:"hdp = topica.HDP(seed=42).fit(corpus)"},
+    {c:"py",  t:"hdp.num_topics", tail:"   # discovered from the data"},
+    {c:"res", t:"8", pause:400},
+    {c:"gap"},
+
+    {c:"cmt", t:"# 4 · already know what you're looking for? seed the topics"},
+    {c:"py",  t:"keys = {\"economy\": [\"jobs\",\"wages\"], \"legal\": [\"law\",\"court\"]}"},
+    {c:"py",  t:"katm = topica.KeyATM(num_topics=5, keywords=keys, seed=42)"},
+    {c:"py",  t:"print(topica.summary(katm.fit(corpus), topics=[\"economy\",\"legal\"]))"},
+    {c:"res", t:"  economy   jobs wages workers pay taxes money", pause:450},
+    {c:"res", t:"  legal     law court illegal deport visa status"},
+    {c:"gap"},
+
+    {c:"cmt", t:"# 5 · scale documents on a latent dimension — text ideal points"},
+    {c:"py",  t:"wf = topica.Wordfish(seed=42).fit(corpus)"},
+    {c:"py",  t:"topica.plot_positions(wf)", tail:"   # 341 respondents, 1-D"},
+    {c:"fig", pause:220, html:true, t:'  <span class="ax">restrictive</span>  <span class="mk">◀</span><span class="ax">───────────────────────────────────</span><span class="mk">▶</span>  <span class="ax">permissive</span>'},
+    {c:"fig", html:true, t:'                <span class="bar-f">▁▂▃▅▇█▇▅▄▃▂▂▃▄▆▇▆▅▃▂▁▁▂▃▄▅▄▃▂▁▁▁▁▁▁</span>'},
+    {c:"fig", html:true, t:'                <span class="ax">-2      -1       0        +1      +2</span>'},
+    {c:"gap"},
+
+    {c:"cmt", t:"# 6 · same corpus, other families — one flat namespace"},
+    {c:"py",  t:"nmf = topica.NMF(num_topics=5).fit(corpus)"},
+    {c:"py",  t:"ctm = topica.CTM(num_topics=5, seed=42).fit(corpus)", tail:"   # correlated topics"},
+    {c:"py",  t:"len(topica.list_models())"},
+    {c:"res", t:"39", pause:350},
+    {c:"gap"},
+    {c:"cmt", t:"# one import, no JVM — from a DataFrame to a defensible result."},
     {c:"py",  t:"exit()"},
     {c:"end"}
   ];
   var PROMPT = {sh:"$ ", py:">>> ", pyc:"... ", cmt:">>> ", end:"$ "};
   var TYPED  = {sh:1, py:1, pyc:1, cmt:1};
 
-  var cursor = null, token = 0;
+  var cursor = null, token = 0, fast = false;
   function sleep(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
   function atBottom(){ screen.scrollTop = screen.scrollHeight; }
   function esc(s){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;"); }
@@ -204,13 +257,15 @@
     atBottom();
 
     var s = line.t || "";
-    if(TYPED[line.c] && !reduce){
+    if(TYPED[line.c] && !reduce && !fast){
       for(var i=0;i<s.length;i++){
         if(tok!==token) return;
         txt.textContent += s[i];
         atBottom();
         await sleep(16 + Math.random()*46 + (s[i]===" "?8:0));
       }
+    } else if(line.html){
+      txt.innerHTML = s;      // pre-formatted figure markup (trusted, inline only)
     } else {
       txt.textContent = s;
     }
@@ -229,7 +284,7 @@
       if(tok!==token) return;
       var line = SESSION[i];
       if(line.c==="gap"){ screen.appendChild(document.createElement("br")); atBottom();
-        if(!reduce) await sleep(120); continue; }
+        if(!reduce && !fast) await sleep(120); continue; }
       if(line.c==="end"){
         var d=document.createElement("div"); d.className="line";
         var ps=document.createElement("span"); ps.className="p-sh"; ps.textContent="$ ";
@@ -238,7 +293,7 @@
       }
       await typeLine(line, tok);
       if(tok!==token) return;
-      if(!reduce){
+      if(!reduce && !fast){
         var base = TYPED[line.c] ? 210 : 40;
         await sleep(base + (line.pause||0) + Math.random()*90);
       }
@@ -246,12 +301,10 @@
   }
 
   document.getElementById("skip").addEventListener("click", function(){
-    token++;                     // cancel current run
-    reduce = true; run();        // re-render instantly
-    reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    fast = true; run();          // render the whole session instantly
   });
   document.getElementById("replay").addEventListener("click", function(){
-    reduce = matchMedia("(prefers-reduced-motion: reduce)").matches; run();
+    fast = false; run();         // play it out again
   });
 
   // copy install
