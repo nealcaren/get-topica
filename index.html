@@ -149,7 +149,7 @@
   // A real topica session (output captured from an actual run on the bundled
   // Gadarian immigration experiment; numbers are genuine).
   var SESSION = [
-    {c:"sh",  t:"pip install \"topica[llm]\" llm-sentence-transformers"},
+    {c:"sh",  t:"pip install topica"},
     {c:"sys", t:"Collecting topica ... building wheel"},
     {c:"ok",  t:"✓ Successfully installed topica-0.34.0"},
     {c:"gap"},
@@ -186,17 +186,17 @@
     {c:"py",  t:"X = corpus.metadata[[\"treatment\"]].to_numpy(float)"},
     {c:"py",  t:"stm = topica.STM(num_topics=5, seed=42)"},
     {c:"py",  t:"stm.fit(corpus, prevalence=X, prevalence_names=[\"treatment\"])"},
-    {c:"py",  t:"draws = topica.posterior_theta_samples(stm, nsims=200)"},
+    {c:"py",  t:"draws = topica.posterior_theta_samples(stm, nsims=5000, seed=0)"},
     {c:"py",  t:"eff = topica.estimate_effect(draws, X, feature_names=[\"treatment\"])"},
     {c:"py",  t:"eff[0].coef", tail:"   # treatment − control; illustrated below"},
     {c:"fig", pause:220, html:true, t:'                  <span class="ax">    -0.1      0.0      +0.1      +0.2</span>'},
     {c:"fig", html:true, t:'                  <span class="ax">     |         |         |         |</span>'},
-    {c:"fig", html:true, t:'  jobs, security  <span class="sig">               ┊      ├──────●──────┤   </span>  <span class="sig">+0.14 *</span>'},
+    {c:"fig", html:true, t:'  jobs, security  <span class="sig">               ┊      ├──────●──────┤  </span><span class="sig">+0.14 *</span>'},
     {c:"fig", html:true, t:'  country, think  <span class="sig"> ├──────●──────┤                        </span>  <span class="sig">-0.07 *</span>'},
     {c:"fig", html:true, t:'  immigrants      <span class="ns">             ├────●─────┤               </span>  <span class="ns">+0.03</span>'},
     {c:"fig", html:true, t:'  illegals        <span class="ns">   ├──────●─────┤                       </span>  <span class="ns">-0.05</span>'},
     {c:"fig", html:true, t:'  illegal, legal  <span class="ns">    ├─────●─────┤                       </span>  <span class="ns">-0.05</span>'},
-    {c:"cmt", t:"#  ● estimate   ├─┤ 95% CI   ┊ 0 = no effect   * = CI excludes 0"},
+    {c:"cmt", t:"#  ● estimate   ├─┤ 95% CI   ┊ 0 = no effect   * = two-sided p ≤ .05"},
     {c:"gap"},
 
     {c:"cmt", t:"# 3 · don't want to guess k? a nonparametric model infers it"},
