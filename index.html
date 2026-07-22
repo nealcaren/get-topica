@@ -88,6 +88,8 @@
   .c-fig .ax{color:var(--dim)}           /* axes, ticks, labels */
   .c-fig .sig{color:var(--amber);font-weight:700}   /* significant CI */
   .c-fig .ns{color:var(--dim)}           /* non-significant CI */
+  .c-fig a{color:var(--amber);text-decoration:underline;text-underline-offset:3px}
+  .c-fig a:hover{color:var(--amber-hi)}
   .tail{color:var(--dim)}
   .cursor{display:inline-block;width:.62em;height:1.05em;background:var(--amber);
     vertical-align:-2px;margin-left:1px;box-shadow:0 0 6px rgba(255,184,77,.7);animation:blink 1.05s steps(1) infinite}
@@ -288,11 +290,19 @@
     {c:"res", t:"  topic 4  people country fair think right"},
     {c:"gap"},
 
+    {c:"cmt", t:"# 11 · and it's fast — the STM is the fit social scientists wait on"},
+    {c:"py",  t:"topica.benchmark(topica.STM, poliblog, threads=[1, 16], vs=\"R stm\")", tail:"   # 5,000 docs, K=20"},
+    {c:"fig", pause:220, html:true, t:'  R stm   · 1 core    <span class="bar-e">██████████████████████████████</span>  64.9s'},
+    {c:"fig", html:true, t:'  topica  · 1 core    <span class="bar-f">███████████</span>  23.8s  <span class="mk">2.7× faster</span>'},
+    {c:"fig", html:true, t:'  topica  · 16 cores  <span class="bar-f">████</span>  9.3s  <span class="mk">7.0× faster</span>'},
+    {c:"cmt", t:"#  R stm runs on a single core; topica splits the sampler across all of them"},
+    {c:"gap"},
+
     {c:"py",  t:"len(topica.list_models())"},
     {c:"res", t:"39", pause:350},
     {c:"gap"},
-    {c:"cmt", t:"# one import, no JVM — from a DataFrame to a defensible result."},
-    {c:"py",  t:"exit()"},
+    {c:"cmt", t:"# that's the tour — 39 models, one import."},
+    {c:"fig", html:true, pause:200, t:'  try it on your own text:  <span class="mk">pip install topica</span>   ·   <a href="https://nealcaren.github.io/topica/">read the docs →</a>'},
     {c:"end"}
   ];
   var PROMPT = {sh:"$ ", py:">>> ", pyc:"... ", cmt:">>> ", end:"$ "};
