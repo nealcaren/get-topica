@@ -1,0 +1,1229 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>topica — topic modeling for social science</title>
+<meta name="description" content="A fast, all-purpose topic-modeling toolkit for Python. 39 reference-validated models in one wheel — NumPy and pandas, no JVM, no PyTorch.">
+<style>
+  :root{
+    color-scheme: dark;
+    /* palette — chosen, not defaulted: blue-black ink + warm off-white + highlighter amber */
+    --ink:#0B0D12;            /* page ground */
+    --surface:#12151D;        /* raised panels */
+    --surface-2:#171B24;      /* nested panels */
+    --hair:#252A35;           /* hairlines */
+    --text:#ECE8DE;           /* warm off-white */
+    --muted:#969DAC;          /* secondary text */
+    --faint:#6B7280;          /* tertiary */
+    --accent:#F5B93A;         /* highlighter amber */
+    --accent-deep:#E6A521;
+    --accent-ink:#2A1E05;     /* text on amber */
+    --swipe:rgba(245,185,58,.26);  /* highlighter wash */
+    --swipe-strong:rgba(245,185,58,.34);
+    --shadow:0 24px 60px -30px rgba(0,0,0,.8);
+    --maxw:1120px;
+    /* five categorical topic colors — held constant across light/dark */
+    --t0:#35B7B0; --t1:#9B85E8; --t2:#F5B93A; --t3:#EC7A5C; --t4:#5B8DEF;
+    --sans:"Helvetica Neue",Helvetica,"Segoe UI",system-ui,-apple-system,Arial,sans-serif;
+    --mono:ui-monospace,"SF Mono","JetBrains Mono","Cascadia Code",Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme: light){
+    :root{
+      color-scheme: light;
+      --ink:#FBF6EC; --surface:#FFFFFF; --surface-2:#FBF7EE;
+      --hair:#E7DECC; --text:#1A1D24; --muted:#5B6270; --faint:#8A8F9C;
+      --accent:#E4A310; --accent-deep:#C98A00; --accent-ink:#2A1E05;
+      --swipe:rgba(245,185,58,.5); --swipe-strong:rgba(245,185,58,.62);
+      --shadow:0 24px 60px -34px rgba(60,44,10,.28);
+    }
+  }
+  /* explicit toggle wins over the OS media query, both directions */
+  :root[data-theme="light"]{
+    color-scheme: light;
+    --ink:#FBF6EC; --surface:#FFFFFF; --surface-2:#FBF7EE;
+    --hair:#E7DECC; --text:#1A1D24; --muted:#5B6270; --faint:#8A8F9C;
+    --accent:#E4A310; --accent-deep:#C98A00; --accent-ink:#2A1E05;
+    --swipe:rgba(245,185,58,.5); --swipe-strong:rgba(245,185,58,.62);
+    --shadow:0 24px 60px -34px rgba(60,44,10,.28);
+  }
+  :root[data-theme="dark"]{
+    color-scheme: dark;
+    --ink:#0B0D12; --surface:#12151D; --surface-2:#171B24;
+    --hair:#252A35; --text:#ECE8DE; --muted:#969DAC; --faint:#6B7280;
+    --accent:#F5B93A; --accent-deep:#E6A521; --accent-ink:#2A1E05;
+    --swipe:rgba(245,185,58,.26); --swipe-strong:rgba(245,185,58,.34);
+    --shadow:0 24px 60px -30px rgba(0,0,0,.8);
+  }
+
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;background:var(--ink);color:var(--text);
+    font-family:var(--sans);line-height:1.6;
+    -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+    overflow-x:hidden;
+  }
+  a{color:inherit;text-decoration:none}
+  ::selection{background:var(--swipe-strong);color:var(--text)}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:4px}
+
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
+  .kicker{
+    font-family:var(--mono);font-size:12px;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--accent-deep);font-weight:600;
+  }
+  /* highlighter swipe behind inline words */
+  .hl{
+    background:linear-gradient(var(--swipe),var(--swipe));
+    background-repeat:no-repeat;background-position:0 78%;
+    background-size:100% .62em;padding:0 .06em;
+    box-decoration-break:clone;-webkit-box-decoration-break:clone;
+  }
+  .hl-draw{background-size:0 .62em;transition:background-size .7s cubic-bezier(.2,.7,.2,1)}
+  .hl-draw.on{background-size:100% .62em}
+
+  /* ---------- nav ---------- */
+  header.nav{
+    position:sticky;top:0;z-index:50;
+    backdrop-filter:saturate(140%) blur(12px);
+    background:color-mix(in srgb,var(--ink) 82%,transparent);
+    border-bottom:1px solid var(--hair);
+  }
+  .nav-in{display:flex;align-items:center;gap:20px;height:62px}
+  .brand{font-weight:800;font-size:20px;letter-spacing:-.02em;display:flex;align-items:center;gap:2px}
+  .brand .dot{color:var(--accent)}
+  .brand b{background:linear-gradient(var(--swipe),var(--swipe));background-repeat:no-repeat;background-position:0 70%;background-size:100% .5em;padding:0 .08em;font-weight:800}
+  .nav-links{display:flex;gap:22px;margin-left:14px}
+  .nav-links a{color:var(--muted);font-size:14.5px;font-weight:500}
+  .nav-links a:hover{color:var(--text)}
+  .nav-right{margin-left:auto;display:flex;align-items:center;gap:12px}
+  .ver{font-family:var(--mono);font-size:12px;color:var(--faint);border:1px solid var(--hair);padding:3px 8px;border-radius:999px}
+  .icon-btn{background:transparent;border:1px solid var(--hair);color:var(--muted);width:34px;height:34px;border-radius:9px;cursor:pointer;font-size:15px;display:grid;place-items:center}
+  .icon-btn:hover{color:var(--text);border-color:var(--accent)}
+
+  .btn{
+    display:inline-flex;align-items:center;gap:8px;font-weight:600;font-size:14.5px;
+    padding:10px 16px;border-radius:11px;cursor:pointer;border:1px solid transparent;
+    font-family:var(--sans);transition:transform .12s ease,background .15s ease,border-color .15s;
+  }
+  .btn:active{transform:translateY(1px)}
+  .btn-primary{background:var(--accent);color:var(--accent-ink)}
+  .btn-primary:hover{background:var(--accent-deep)}
+  .btn-ghost{background:transparent;color:var(--text);border-color:var(--hair)}
+  .btn-ghost:hover{border-color:var(--accent);color:var(--text)}
+  .nav .nav-links{display:none}
+  @media(min-width:860px){.nav .nav-links{display:flex}}
+
+  /* ---------- hero ---------- */
+  .hero{padding:72px 0 40px;position:relative}
+  .hero-grid{display:grid;gap:48px;align-items:center}
+  @media(min-width:920px){.hero-grid{grid-template-columns:1.05fr .95fr}}
+  h1{
+    font-size:clamp(2.5rem,6.2vw,4.4rem);line-height:1.02;letter-spacing:-.035em;
+    font-weight:800;margin:18px 0 0;text-wrap:balance;
+  }
+  .lede{font-size:clamp(1.05rem,2vw,1.25rem);color:var(--muted);max-width:33ch;margin:22px 0 0;text-wrap:pretty}
+  .hero-cta{display:flex;flex-wrap:wrap;gap:12px;margin-top:30px;align-items:center}
+  .badges{margin-top:26px;display:flex;flex-wrap:wrap;gap:8px 8px}
+  .badge{font-family:var(--mono);font-size:11.5px;color:var(--muted);border:1px solid var(--hair);border-radius:999px;padding:5px 11px}
+  .badge b{color:var(--text);font-weight:600}
+
+  /* copyable install pill */
+  .install{
+    display:inline-flex;align-items:center;gap:12px;background:var(--surface);
+    border:1px solid var(--hair);border-radius:12px;padding:9px 9px 9px 15px;
+    font-family:var(--mono);font-size:14.5px;box-shadow:var(--shadow);
+  }
+  .install .pfx{color:var(--accent)}
+  .install code{color:var(--text)}
+  .copy{margin-left:2px;background:var(--surface-2);border:1px solid var(--hair);color:var(--muted);
+    border-radius:8px;padding:6px 10px;font-family:var(--mono);font-size:12px;cursor:pointer;transition:.15s}
+  .copy:hover{color:var(--text);border-color:var(--accent)}
+  .copy.ok{color:var(--accent);border-color:var(--accent)}
+
+  /* ---------- app screenshot: topic readout ---------- */
+  .app{
+    background:var(--surface);border:1px solid var(--hair);border-radius:16px;
+    box-shadow:var(--shadow);overflow:hidden;
+  }
+  .app-bar{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--hair);background:var(--surface-2)}
+  .tl{width:11px;height:11px;border-radius:50%;background:var(--hair)}
+  .tl.a{background:#F5655B}.tl.b{background:#F5B93A}.tl.c{background:#4FB477}
+  .app-title{margin-left:8px;font-family:var(--mono);font-size:12px;color:var(--muted)}
+  .app-body{padding:18px 18px 20px}
+  .app-note{font-family:var(--mono);font-size:11px;color:var(--faint);margin:0 0 14px}
+  .topic{margin:0 0 15px}
+  .topic:last-child{margin-bottom:0}
+  .topic-h{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:9px}
+  .topic-h .t{font-family:var(--mono);font-size:12px;color:var(--muted)}
+  .topic-h .p{font-family:var(--mono);font-size:11px;color:var(--faint);font-variant-numeric:tabular-nums}
+  .words{display:flex;flex-direction:column;gap:6px}
+  .word{position:relative;display:flex;align-items:center;height:22px;padding-left:10px;font-size:13.5px}
+  .word .bar{position:absolute;inset:0;background:var(--swipe);border-radius:5px;transform-origin:left;transform:scaleX(var(--w,.5))}
+  .word span{position:relative;z-index:1}
+  .word b{position:relative;z-index:1;margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--faint);padding-right:8px;font-variant-numeric:tabular-nums}
+
+  /* ---------- trust strip ---------- */
+  .strip{border-top:1px solid var(--hair);border-bottom:1px solid var(--hair);margin-top:44px}
+  .strip-in{display:flex;flex-wrap:wrap;gap:10px 30px;padding:18px 0;align-items:center;justify-content:space-between}
+  .strip-item{font-family:var(--mono);font-size:13px;color:var(--muted);display:flex;align-items:center;gap:9px}
+  .strip-item b{color:var(--text);font-weight:700}
+  .strip-item .n{color:var(--accent);font-weight:700}
+
+  /* ---------- sections ---------- */
+  section{padding:78px 0}
+  .sec-head{max-width:60ch}
+  .sec-head h2{font-size:clamp(1.7rem,3.4vw,2.5rem);letter-spacing:-.03em;font-weight:800;margin:12px 0 0;text-wrap:balance}
+  .sec-head p{color:var(--muted);font-size:1.05rem;margin:14px 0 0}
+
+  .feat-grid{display:grid;gap:16px;margin-top:44px;grid-template-columns:repeat(1,1fr)}
+  @media(min-width:640px){.feat-grid{grid-template-columns:repeat(2,1fr)}}
+  @media(min-width:960px){.feat-grid{grid-template-columns:repeat(3,1fr)}}
+  .card{background:var(--surface);border:1px solid var(--hair);border-radius:14px;padding:22px;transition:border-color .18s,transform .18s}
+  .card:hover{border-color:color-mix(in srgb,var(--accent) 55%,var(--hair));transform:translateY(-2px)}
+  .card .lab{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-deep)}
+  .card h3{font-size:1.16rem;margin:12px 0 8px;letter-spacing:-.015em}
+  .card p{color:var(--muted);font-size:.96rem;margin:0}
+
+  /* ---------- code section ---------- */
+  .code-wrap{display:grid;gap:36px;align-items:center;margin-top:40px}
+  @media(min-width:920px){.code-wrap{grid-template-columns:.9fr 1.1fr}}
+  .code{background:var(--surface);border:1px solid var(--hair);border-radius:14px;overflow:hidden;box-shadow:var(--shadow)}
+  pre{margin:0;padding:20px 22px;overflow-x:auto;font-family:var(--mono);font-size:13px;line-height:1.7;color:var(--text)}
+  pre .c{color:var(--faint)}
+  pre .k{color:var(--accent-deep)}
+  pre .s{color:#8FBF7F}
+  .code-steps{display:flex;flex-direction:column;gap:18px}
+  .step{display:flex;gap:14px}
+  .step .m{font-family:var(--mono);color:var(--accent-deep);font-size:13px;font-weight:700;padding-top:2px;min-width:26px}
+  .step h4{margin:0 0 3px;font-size:1.02rem}
+  .step p{margin:0;color:var(--muted);font-size:.95rem}
+
+  /* ---------- models wall (periodic table of topic models) ---------- */
+  .legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:34px}
+  .chip{font-family:var(--mono);font-size:12px;color:var(--muted);background:var(--surface);border:1px solid var(--hair);
+    border-radius:999px;padding:6px 13px 6px 11px;cursor:pointer;transition:.15s;white-space:nowrap;display:inline-flex;align-items:center;gap:8px}
+  .chip .sw{width:9px;height:9px;border-radius:3px;background:var(--gc,var(--accent))}
+  .chip:hover{color:var(--text);border-color:var(--gc,var(--accent))}
+  .chip[aria-pressed="true"]{color:var(--text);border-color:var(--gc,var(--accent));background:color-mix(in srgb,var(--gc,var(--accent)) 15%,var(--surface));font-weight:600}
+  .chip[data-all][aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+
+  .wall{margin-top:26px;display:flex;flex-direction:column;gap:26px}
+  .block{scroll-margin-top:80px}
+  .block-head{display:flex;align-items:baseline;gap:12px;margin-bottom:12px;padding-bottom:9px;border-bottom:1px solid var(--hair)}
+  .block-head .gname{font-family:var(--mono);font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;font-weight:700;color:var(--gc);display:flex;align-items:center;gap:9px}
+  .block-head .gname::before{content:"";width:10px;height:10px;border-radius:3px;background:var(--gc)}
+  .block-head .gcount{font-family:var(--mono);font-size:11px;color:var(--faint)}
+  .tiles{display:grid;gap:10px;grid-template-columns:repeat(2,1fr)}
+  @media(min-width:600px){.tiles{grid-template-columns:repeat(3,1fr)}}
+  @media(min-width:960px){.tiles{grid-template-columns:repeat(4,1fr)}}
+
+  .tile{
+    position:relative;background:var(--surface);border:1px solid var(--hair);border-left:3px solid var(--gc);
+    border-radius:11px;padding:13px 13px 12px;overflow:hidden;
+    transition:transform .16s ease,border-color .16s,box-shadow .16s,opacity .3s;
+  }
+  .tile .idx{position:absolute;top:9px;right:11px;font-family:var(--mono);font-size:10px;color:var(--faint);font-variant-numeric:tabular-nums}
+  .tile .mname{font-family:var(--mono);font-weight:700;font-size:15px;letter-spacing:-.01em;padding-right:22px}
+  .tile .msum{margin:6px 0 0;color:var(--muted);font-size:.82rem;line-height:1.45;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .tile:hover{transform:translateY(-3px);border-color:var(--gc);box-shadow:0 16px 30px -20px color-mix(in srgb,var(--gc) 60%,transparent)}
+  .tile:hover .msum{-webkit-line-clamp:6}
+  /* legend highlight: dim the models not in the active group */
+  .wall.filtered .tile{opacity:.24;filter:saturate(.5)}
+  .wall.filtered .tile.hot{opacity:1;filter:none}
+  .wall.filtered .block.cold .block-head{opacity:.34}
+
+  /* staggered reveal on load */
+  .tile.pre{opacity:0;transform:translateY(10px)}
+  .tile.in{opacity:1;transform:none;transition:opacity .5s ease,transform .5s cubic-bezier(.2,.7,.2,1)}
+  .count-note{font-family:var(--mono);font-size:12px;color:var(--faint);margin-top:22px}
+
+  /* ---------- manifesto ---------- */
+  .manifesto{background:var(--surface);border:1px solid var(--hair);border-radius:14px;box-shadow:var(--shadow);overflow:hidden;margin-top:8px}
+  .manifesto .app-bar .app-title::before{content:"$ "}
+  .man-body{padding:26px 24px;font-family:var(--mono);font-size:14.5px;line-height:1.85}
+  .man-body p{margin:0 0 14px;color:var(--muted)}
+  .man-body p:last-child{margin:0}
+  .man-body .hl{color:var(--text)}
+  .man-body .caret{display:inline-block;width:9px;height:1.05em;background:var(--accent);vertical-align:-2px;margin-left:3px;animation:blink 1.15s step-end infinite}
+  @keyframes blink{50%{opacity:0}}
+
+  /* ---------- final cta ---------- */
+  .final{text-align:center;padding:96px 0}
+  .final h2{font-size:clamp(1.9rem,4vw,3rem);letter-spacing:-.03em;font-weight:800;margin:0 0 8px;text-wrap:balance}
+  .final p{color:var(--muted);margin:0 auto 30px;max-width:46ch}
+  .final .hero-cta{justify-content:center}
+
+  /* ---------- footer ---------- */
+  footer{border-top:1px solid var(--hair);padding:52px 0 40px}
+  .foot-grid{display:grid;gap:32px;grid-template-columns:1.4fr repeat(3,1fr)}
+  @media(max-width:720px){.foot-grid{grid-template-columns:1fr 1fr}}
+  .foot-brand p{color:var(--muted);font-size:.92rem;max-width:34ch;margin:12px 0 0}
+  .foot-col h5{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin:0 0 14px;font-weight:600}
+  .foot-col a{display:block;color:var(--muted);font-size:.94rem;margin-bottom:10px}
+  .foot-col a:hover{color:var(--accent)}
+  .foot-base{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;margin-top:44px;padding-top:22px;border-top:1px solid var(--hair);color:var(--faint);font-size:.86rem;font-family:var(--mono)}
+
+  /* ---------- error-bar figure ---------- */
+  .fig-wrap{display:grid;gap:40px;align-items:center;margin-top:40px}
+  @media(min-width:900px){.fig-wrap{grid-template-columns:.82fr 1.18fr}}
+  .fig-copy p{color:var(--muted);margin:14px 0 0}
+  .fig-copy .read{margin-top:20px;display:flex;flex-direction:column;gap:11px}
+  .fig-copy .read li{list-style:none;display:flex;gap:11px;align-items:flex-start;color:var(--muted);font-size:.95rem}
+  .fig-copy .read .k{width:11px;height:11px;border-radius:3px;margin-top:5px;flex:none}
+  .fig-copy .read .k.sig{background:var(--accent)}
+  .fig-copy .read .k.ns{background:var(--faint)}
+  .fig-panel{background:var(--surface);border:1px solid var(--hair);border-radius:16px;box-shadow:var(--shadow);overflow:hidden}
+  .fig-svg{display:block;width:100%;height:auto}
+  .fig-cap{padding:0 20px 18px;margin:0;color:var(--faint);font-size:.8rem;font-family:var(--mono);line-height:1.5}
+
+  .fig-zero{stroke:var(--muted);stroke-width:1;stroke-dasharray:3 4;opacity:.7}
+  .fig-axis{stroke:var(--hair);stroke-width:1}
+  .fig-tick{stroke:var(--hair);stroke-width:1}
+  .fig-ticklab,.fig-axislab{fill:var(--faint);font-family:var(--mono)}
+  .fig-lab{fill:var(--text);font-family:var(--mono)}
+  .fig-tnum{fill:var(--faint);font-family:var(--mono)}
+  .fig-whisker{stroke:var(--faint);stroke-width:2;stroke-linecap:round}
+  .fig-cap-end{stroke:var(--faint);stroke-width:2;stroke-linecap:round}
+  .fig-dot{fill:var(--surface);stroke:var(--faint);stroke-width:2.5}
+  .fig-row.sig .fig-whisker,.fig-row.sig .fig-cap-end{stroke:var(--accent)}
+  .fig-row.sig .fig-dot{fill:var(--accent);stroke:var(--accent)}
+  .fig-row.sig .fig-lab{fill:var(--text)}
+  .fig-row.sig .fig-tnum{fill:var(--accent-deep)}
+  .fig-row .fig-whisker,.fig-row .fig-dot,.fig-row .fig-cap-end{transition:opacity .5s ease}
+  .fig-row.pre .fig-whisker,.fig-row.pre .fig-dot,.fig-row.pre .fig-cap-end{opacity:0}
+
+  /* ---------- speed ---------- */
+  .speed-grid{display:grid;gap:14px;margin-top:40px;grid-template-columns:repeat(1,1fr)}
+  @media(min-width:640px){.speed-grid{grid-template-columns:repeat(3,1fr)}}
+  .stat{background:var(--surface);border:1px solid var(--hair);border-radius:14px;padding:24px 22px;border-top:3px solid var(--accent)}
+  .stat .big{font-family:var(--mono);font-weight:800;font-size:clamp(2rem,4.4vw,2.7rem);letter-spacing:-.03em;color:var(--text);font-variant-numeric:tabular-nums;line-height:1}
+  .stat .big u{color:var(--accent);text-decoration:none}
+  .stat .cap{margin:12px 0 0;color:var(--muted);font-size:.92rem}
+  .stat .cap b{color:var(--text);font-weight:600}
+  .speed-foot{margin-top:20px;font-family:var(--mono);font-size:12.5px;color:var(--faint);display:flex;flex-wrap:wrap;gap:8px 18px}
+  .speed-foot span{display:inline-flex;align-items:center;gap:8px}
+  .speed-foot span::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--accent)}
+
+  /* ---------- topica vs stm comparison chart ---------- */
+  .cmp-wrap{display:grid;gap:38px;align-items:center;margin-top:40px}
+  @media(min-width:900px){.cmp-wrap{grid-template-columns:1.15fr .85fr}}
+  .cmp-panel{background:var(--surface);border:1px solid var(--hair);border-radius:16px;box-shadow:var(--shadow);overflow:hidden}
+  .cmp-svg{display:block;width:100%;height:auto}
+  .cmp-cap{padding:0 20px 18px;margin:0;color:var(--faint);font-size:.8rem;font-family:var(--mono);line-height:1.5}
+  .cmp-lab{fill:var(--text);font-family:var(--mono)}
+  .cmp-sub{fill:var(--faint);font-family:var(--mono)}
+  .cmp-base{stroke:var(--hair);stroke-width:1}
+  .cmp-bar-ref{fill:var(--faint);opacity:.55}
+  .cmp-bar-topica{fill:var(--accent)}
+  .cmp-val{fill:var(--text);font-family:var(--mono);font-weight:700;font-variant-numeric:tabular-nums}
+  .cmp-sp{fill:var(--accent-deep);font-family:var(--mono);font-weight:700}
+  .cmp-note{fill:var(--faint);font-family:var(--mono)}
+  .cmp-bar{transform-box:fill-box;transform-origin:left center;transition:transform .7s cubic-bezier(.2,.7,.2,1)}
+  .cmp-pre .cmp-bar{transform:scaleX(0)}
+  .cmp-side .lead{font-size:clamp(2.4rem,5vw,3.2rem);font-family:var(--mono);font-weight:800;letter-spacing:-.03em;color:var(--accent);line-height:1}
+  .cmp-side p{color:var(--muted);margin:14px 0 0}
+  .cmp-side .mini{margin-top:22px;display:flex;flex-direction:column;gap:12px}
+  .cmp-side .mini div{display:flex;gap:12px;align-items:baseline;border-top:1px solid var(--hair);padding-top:12px}
+  .cmp-side .mini .m-n{font-family:var(--mono);font-weight:800;font-size:1.1rem;color:var(--text);min-width:82px;font-variant-numeric:tabular-nums}
+  .cmp-side .mini .m-t{color:var(--muted);font-size:.9rem}
+
+  /* "across the field" comparison cards */
+  .vs-head{margin-top:52px;display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+  .vs-head h3{font-size:1.15rem;letter-spacing:-.01em;margin:0}
+  .vs-head span{color:var(--muted);font-size:.95rem}
+  .vs-grid{display:grid;gap:14px;margin-top:18px;grid-template-columns:repeat(1,1fr)}
+  @media(min-width:720px){.vs-grid{grid-template-columns:repeat(2,1fr)}}
+  .vs-card{background:var(--surface);border:1px solid var(--hair);border-radius:14px;padding:22px;border-top:3px solid var(--accent)}
+  .vs-card .lab{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent-deep);display:flex;align-items:center;gap:8px}
+  .vs-card .big{font-family:var(--mono);font-weight:800;font-size:clamp(1.7rem,3.6vw,2.2rem);letter-spacing:-.02em;line-height:1;margin:14px 0 0;font-variant-numeric:tabular-nums;color:var(--accent)}
+  .vs-card .big .vs{color:var(--muted);font-weight:600;font-size:.62em;margin-left:8px}
+  .vs-card .cap{margin:12px 0 0;color:var(--muted);font-size:.92rem}
+  .vs-card .cap b{color:var(--text);font-weight:600}
+
+  /* ---------- hero: words-into-bins intro ---------- */
+  .hero-head{max-width:64ch}
+  .hero .lede{max-width:58ch}
+  .binhero{margin-top:34px}
+  .controls{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:18px}
+  .seg{display:inline-flex;border:1px solid var(--hair);border-radius:10px;overflow:hidden;font-family:var(--mono)}
+  .seg button{background:transparent;border:0;color:var(--muted);font-family:var(--mono);font-size:12.5px;padding:8px 12px;cursor:pointer}
+  .seg button+button{border-left:1px solid var(--hair)}
+  .seg button[aria-pressed="true"]{background:color-mix(in srgb,var(--accent) 16%,var(--surface));color:var(--text)}
+  .status{margin-left:auto;font-family:var(--mono);font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:9px;min-height:20px}
+  .status .head{color:var(--faint)}
+  .status .act b{color:var(--stcol,var(--accent));font-weight:700}
+  @media(max-width:640px){.status{margin-left:0;width:100%;order:5}}
+
+  .stage{display:grid;gap:20px}
+  @media(min-width:900px){.stage{grid-template-columns:minmax(300px,.92fr) 1.5fr;align-items:start}}
+
+  .doc{background:var(--surface);border:1px solid var(--hair);border-radius:14px;box-shadow:var(--shadow);overflow:hidden;position:relative}
+  .doc-body{padding:16px 18px 18px}
+  .resp{margin:0 0 15px;font-size:15px;line-height:1.95}
+  .resp:last-child{margin-bottom:0}
+  .resp .rl{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin-bottom:2px}
+  .w{position:relative;padding:1px 2px;border-radius:5px;transition:color .3s,background .3s,opacity .45s,transform .45s;white-space:nowrap}
+  .w.reading{background:var(--swipe);color:var(--text)}
+  .w.stop{color:var(--faint)}
+  .w.dropped{opacity:.16;transform:translateY(5px)}
+  .w.sent{color:color-mix(in srgb,var(--wc) 78%,var(--text));box-shadow:inset 0 -2px 0 color-mix(in srgb,var(--wc) 60%,transparent)}
+  .w.dim{opacity:.2}
+  .doc-note{margin:15px 0 0;font-family:var(--mono);font-size:11.5px;color:var(--faint);border-top:1px solid var(--hair);padding-top:13px;display:flex;flex-wrap:wrap;gap:5px 16px}
+  .doc-note span{display:inline-flex;align-items:center;gap:7px}
+  .doc-note .kb{width:9px;height:9px;border-radius:2px;background:var(--faint)}
+  .doc-note .kb.keep{background:var(--accent)}
+
+  .bins{display:grid;gap:12px;grid-template-columns:repeat(2,1fr)}
+  @media(min-width:560px){.bins{grid-template-columns:repeat(3,1fr)}}
+  @media(min-width:1080px){.bins{grid-template-columns:repeat(5,1fr)}}
+  .bin{background:var(--surface);border:1px solid var(--hair);border-top:3px solid var(--bc);border-radius:12px;padding:12px 12px 10px;min-height:150px;display:flex;flex-direction:column;transition:border-color .18s,box-shadow .2s,transform .2s,opacity .25s;position:relative;overflow:hidden}
+  .bin.catch{box-shadow:0 0 0 1px var(--bc),0 14px 30px -18px color-mix(in srgb,var(--bc) 70%,transparent)}
+  .bin.lit{border-color:var(--bc)}
+  .bin.mute{opacity:.32;filter:saturate(.6)}
+  .bin-h{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+  .bin-h .sw{width:11px;height:11px;border-radius:3px;background:var(--bc);flex:none}
+  .bin-h .nm{font-family:var(--mono);font-size:12px;color:var(--text);font-weight:600;letter-spacing:-.01em;line-height:1.2}
+  .bin-h .ct{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--faint);font-variant-numeric:tabular-nums;border:1px solid var(--hair);border-radius:999px;padding:2px 7px}
+  .tally{display:flex;flex-direction:column;gap:5px;margin-top:auto}
+  .row{position:relative;display:flex;align-items:center;height:23px;padding:0 8px;border-radius:6px;font-size:13px;overflow:hidden}
+  .row .bar{position:absolute;left:0;top:0;bottom:0;background:color-mix(in srgb,var(--bc) 22%,transparent);border-radius:6px;width:0;transition:width .5s cubic-bezier(.2,.7,.2,1)}
+  .row .rw{position:relative;z-index:1;color:var(--text);font-family:var(--mono);letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis}
+  .row .rn{position:relative;z-index:1;margin-left:auto;padding-left:9px;font-family:var(--mono);font-size:11px;color:var(--faint);font-variant-numeric:tabular-nums;flex:none}
+  .row.pop{animation:pop .34s cubic-bezier(.2,.9,.3,1)}
+  @keyframes pop{0%{transform:scale(.82);opacity:.4}60%{transform:scale(1.04)}100%{transform:scale(1)}}
+  .bin-empty{font-family:var(--mono);font-size:11px;color:var(--faint);margin-top:auto;opacity:.7}
+
+  .flyer{position:fixed;z-index:80;pointer-events:none;font-family:var(--mono);font-size:13.5px;padding:2px 7px;border-radius:7px;white-space:nowrap;color:var(--text);background:color-mix(in srgb,var(--fc) 26%,var(--surface));border:1px solid color-mix(in srgb,var(--fc) 55%,transparent);box-shadow:0 8px 20px -10px color-mix(in srgb,var(--fc) 80%,transparent);will-change:transform,opacity}
+  .drop-ghost{position:fixed;z-index:79;pointer-events:none;color:var(--faint);font-family:var(--mono);font-size:13px;will-change:transform,opacity}
+
+  .cap{margin:18px 0 0;font-family:var(--mono);font-size:12.5px;color:var(--faint);display:flex;flex-wrap:wrap;gap:6px 20px}
+  .cap b{color:var(--text);font-weight:600}
+  .cap .lead{color:var(--accent-deep)}
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+    .hl-draw{background-size:100% .62em}
+    .fig-row.pre .fig-whisker,.fig-row.pre .fig-dot,.fig-row.pre .fig-cap-end{opacity:1}
+    .cmp-pre .cmp-bar{transform:none}
+  }
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <div class="wrap nav-in">
+    <a class="brand" href="#top">top<b>ic</b>a<span class="dot">.</span></a>
+    <nav class="nav-links">
+      <a href="#features">Why</a>
+      <a href="#uncertainty">Uncertainty</a>
+      <a href="#speed">Speed</a>
+      <a href="#models">Models</a>
+      <a href="https://nealcaren.github.io/topica/">Docs</a>
+    </nav>
+    <div class="nav-right">
+      <span class="ver">v0.34.0</span>
+      <button class="icon-btn" id="theme" aria-label="Toggle light and dark theme" title="Toggle theme">◐</button>
+      <a class="btn btn-primary" href="#start">Install</a>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+  <!-- HERO — what a topic model does, live -->
+  <section class="hero">
+    <div class="wrap">
+      <div class="hero-head">
+        <span class="kicker">Topic modeling for social science</span>
+        <h1>A topic model sorts <span class="hl hl-draw">words</span> into <span class="hl hl-draw">bins</span>.</h1>
+        <p class="lede">That's the whole idea: read a document, drop the filler, sort what's left. topica gives you 39 reference-validated models that do it — one Python wheel, NumPy and pandas, no JVM.</p>
+
+        <div class="hero-cta">
+          <div class="install">
+            <span class="pfx">$</span><code id="cmd">pip install topica</code>
+            <button class="copy" id="copy" aria-label="Copy install command">copy</button>
+          </div>
+          <a class="btn btn-ghost" href="https://nealcaren.github.io/topica/">Read the docs →</a>
+        </div>
+
+        <div class="badges">
+          <span class="badge"><b>39 models</b>, one import</span>
+          <span class="badge">Python 3.9+</span>
+          <span class="badge">no JVM · <b>no PyTorch</b></span>
+          <span class="badge">Apache-2.0</span>
+        </div>
+      </div>
+
+      <!-- live illustration: words from a document sorted into topic bins -->
+      <div class="binhero" aria-label="Live illustration: words from a document sorted into topic bins">
+        <div class="controls">
+          <button class="btn btn-primary" id="play">▶ Sort the words</button>
+          <button class="btn btn-ghost" id="replay" hidden>↻ Replay</button>
+          <div class="seg" role="group" aria-label="Playback speed">
+            <button id="sp1" aria-pressed="true">1×</button>
+            <button id="sp2" aria-pressed="false">2×</button>
+          </div>
+          <div class="status" id="status" aria-live="polite">
+            <span class="head">the idea</span>
+            <span class="act">read → prune → bin · <b>watch it run</b></span>
+          </div>
+        </div>
+
+        <div class="stage">
+          <figure class="doc" style="margin:0">
+            <div class="app-bar">
+              <span class="tl a"></span><span class="tl b"></span><span class="tl c"></span>
+              <span class="app-title">corpus · gadarian · 3 responses</span>
+            </div>
+            <div class="doc-body" id="doc"></div>
+          </figure>
+          <div>
+            <div class="bins" id="bins"></div>
+            <p class="cap" id="cap" hidden></p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- trust strip -->
+    <div class="strip"><div class="wrap strip-in">
+      <span class="strip-item"><span class="n">39</span> validated models</span>
+      <span class="strip-item"><b>one</b> import, flat namespace</span>
+      <span class="strip-item">bit-exact &amp; <b>seed-reproducible</b> fits</span>
+      <span class="strip-item">checked vs <b>R stm</b>, MALLET, keyATM</span>
+    </div></div>
+  </section>
+
+  <!-- FEATURES -->
+  <section id="features">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="kicker">Why topica</span>
+        <h2>Everything reviewers ask for, in one install.</h2>
+        <p>General toolkits hand you topics. topica is built around the question social scientists ask next — how prevalence and content relate to covariates — with the validation and reporting to defend it.</p>
+      </div>
+
+      <div class="feat-grid">
+        <div class="card">
+          <span class="lab">The shelf</span>
+          <h3>39 models, one namespace</h3>
+          <p>LDA, STM, CTM, keyATM, SAGE, HDP, dynamic, neural, and embedding-based — models usually split across MALLET and R, all behind <code>import topica</code>.</p>
+        </div>
+        <div class="card">
+          <span class="lab">No heavy runtime</span>
+          <h3>A single wheel</h3>
+          <p>A Rust core with a NumPy-native API. It needs only NumPy and pandas — no Java, no PyTorch, no build step.</p>
+        </div>
+        <div class="card">
+          <span class="lab">Trust the fit</span>
+          <h3>Validated &amp; reproducible</h3>
+          <p>Every model is checked against its reference implementation. Variational fits are identical to the bit; samplers reproduce from a fixed seed and thread count.</p>
+        </div>
+        <div class="card">
+          <span class="lab">Covariates</span>
+          <h3>Effects, not just topics</h3>
+          <p>Relate topic prevalence and content to metadata with structural models and well-calibrated hypothesis tests — <code>estimate_effect</code> out of the box.</p>
+        </div>
+        <div class="card">
+          <span class="lab">Honest uncertainty</span>
+          <h3>An error bar on everything</h3>
+          <p>Standard errors and confidence intervals next to coefficients, coherence, correlations, and ideal-point positions — uncertainty is a first-class citizen.</p>
+        </div>
+        <div class="card">
+          <span class="lab">Your data</span>
+          <h3>DataFrame in, results out</h3>
+          <p><code>from_dataframe</code> keeps metadata aligned to the documents that survive pruning, so the same corpus feeds the model, the effects, and the report.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ERROR-BAR FIGURE -->
+  <section id="uncertainty">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="kicker">Show, don't tell</span>
+        <h2>An error bar on every estimate.</h2>
+        <p>Topics are estimated, not observed — so topica carries that uncertainty into every number downstream. Below: a real fit relating an experimental treatment to each topic's prevalence, with 95% intervals from the method of composition (Rubin-pooled over posterior draws, the procedure R <code>stm</code> uses).</p>
+      </div>
+
+      <div class="fig-wrap">
+        <div class="fig-copy">
+          <ul class="read">
+            <li><span class="k sig"></span><span>Interval clears zero — a real shift. The treatment raises <span class="hl">jobs / security</span> and lowers <span class="hl">country</span>.</span></li>
+            <li><span class="k ns"></span><span>Interval spans zero — no detectable effect. Three of the five topics simply don't move, and the bars say so.</span></li>
+          </ul>
+          <p style="margin-top:22px;font-family:var(--mono);font-size:.82rem;color:var(--faint)">This whole figure is one call: <br><code>estimate_effect(draws, X, ci=0.95)</code>.</p>
+        </div>
+
+        <figure class="fig-panel" style="margin:0">
+          <svg class="fig-svg" viewBox="0 0 600 330" role="img" aria-label="Estimated treatment effect on each of five topics with 95 percent confidence intervals. Topic 2 (jobs, security) shifts up and topic 3 (country) shifts down; the other three intervals span zero.">
+            <!-- zero reference -->
+            <text class="fig-tnum" x="358" y="34" text-anchor="middle" font-size="10">no effect</text>
+            <line class="fig-zero" x1="358" y1="42" x2="358" y2="256"></line>
+            <!-- rows -->
+            <g class="fig-row ns pre">
+              <text class="fig-lab" x="192" y="64" text-anchor="end" font-size="12.5">T0 · illegals, people</text>
+              <line class="fig-whisker" x1="251" y1="60" x2="364" y2="60"></line>
+              <line class="fig-cap-end" x1="251" y1="55" x2="251" y2="65"></line>
+              <line class="fig-cap-end" x1="364" y1="55" x2="364" y2="65"></line>
+              <text class="fig-tnum" x="307" y="47" text-anchor="middle" font-size="11">−0.05</text>
+              <circle class="fig-dot" cx="307" cy="60" r="5.5"></circle>
+            </g>
+            <g class="fig-row ns pre">
+              <text class="fig-lab" x="192" y="109" text-anchor="end" font-size="12.5">T1 · immigrants, immigration</text>
+              <line class="fig-whisker" x1="336" y1="105" x2="443" y2="105"></line>
+              <line class="fig-cap-end" x1="336" y1="100" x2="336" y2="110"></line>
+              <line class="fig-cap-end" x1="443" y1="100" x2="443" y2="110"></line>
+              <text class="fig-tnum" x="390" y="92" text-anchor="middle" font-size="11">+0.03</text>
+              <circle class="fig-dot" cx="390" cy="105" r="5.5"></circle>
+            </g>
+            <g class="fig-row sig pre">
+              <text class="fig-lab" x="192" y="154" text-anchor="end" font-size="12.5">T2 · jobs, security</text>
+              <line class="fig-whisker" x1="424" y1="150" x2="550" y2="150"></line>
+              <line class="fig-cap-end" x1="424" y1="145" x2="424" y2="155"></line>
+              <line class="fig-cap-end" x1="550" y1="145" x2="550" y2="155"></line>
+              <text class="fig-tnum" x="487" y="137" text-anchor="middle" font-size="11">+0.14</text>
+              <circle class="fig-dot" cx="487" cy="150" r="5.5"></circle>
+            </g>
+            <g class="fig-row sig pre">
+              <text class="fig-lab" x="192" y="199" text-anchor="end" font-size="12.5">T3 · country, people</text>
+              <line class="fig-whisker" x1="229" y1="195" x2="357" y2="195"></line>
+              <line class="fig-cap-end" x1="229" y1="190" x2="229" y2="200"></line>
+              <line class="fig-cap-end" x1="357" y1="190" x2="357" y2="200"></line>
+              <text class="fig-tnum" x="293" y="182" text-anchor="middle" font-size="11">−0.07</text>
+              <circle class="fig-dot" cx="293" cy="195" r="5.5"></circle>
+            </g>
+            <g class="fig-row ns pre">
+              <text class="fig-lab" x="192" y="244" text-anchor="end" font-size="12.5">T4 · illegal, immigrants</text>
+              <line class="fig-whisker" x1="257" y1="240" x2="370" y2="240"></line>
+              <line class="fig-cap-end" x1="257" y1="235" x2="257" y2="245"></line>
+              <line class="fig-cap-end" x1="370" y1="235" x2="370" y2="245"></line>
+              <text class="fig-tnum" x="313" y="227" text-anchor="middle" font-size="11">−0.05</text>
+              <circle class="fig-dot" cx="313" cy="240" r="5.5"></circle>
+            </g>
+            <!-- x axis -->
+            <line class="fig-axis" x1="210" y1="270" x2="580" y2="270"></line>
+            <g font-size="10.5">
+              <line class="fig-tick" x1="266" y1="270" x2="266" y2="276"></line><text class="fig-ticklab" x="266" y="289" text-anchor="middle">−0.1</text>
+              <line class="fig-tick" x1="358" y1="270" x2="358" y2="276"></line><text class="fig-ticklab" x="358" y="289" text-anchor="middle">0</text>
+              <line class="fig-tick" x1="450" y1="270" x2="450" y2="276"></line><text class="fig-ticklab" x="450" y="289" text-anchor="middle">+0.1</text>
+              <line class="fig-tick" x1="543" y1="270" x2="543" y2="276"></line><text class="fig-ticklab" x="543" y="289" text-anchor="middle">+0.2</text>
+            </g>
+            <text class="fig-axislab" x="395" y="312" text-anchor="middle" font-size="11">change in topic proportion&#160;&#160;(treatment − control)</text>
+          </svg>
+          <figcaption class="fig-cap">Real topica output — STM (k=5) on the bundled Gadarian (2010) immigration experiment, 341 open-ended responses. estimate_effect(), 95% CI, method of composition over 200 posterior draws.</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- QUICK START -->
+  <section id="start" style="background:var(--surface-2);border-top:1px solid var(--hair);border-bottom:1px solid var(--hair)">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="kicker">Quick start</span>
+        <h2>Runs exactly as written, right after install.</h2>
+        <p>On a bundled example dataset — no download, no API key, no configuration.</p>
+      </div>
+
+      <div class="code-wrap">
+        <div class="code-steps">
+          <div class="step"><span class="m">01</span><div><h4>Load &amp; build a corpus</h4><p>Point topica at a DataFrame column; stopwords and pruning are one argument each.</p></div></div>
+          <div class="step"><span class="m">02</span><div><h4>Fit a model</h4><p>Sensible defaults, no tuning required. Swap <code>LDA</code> for any of the 39.</p></div></div>
+          <div class="step"><span class="m">03</span><div><h4>Read &amp; relate</h4><p>Top words per topic, then relate prevalence to a covariate with a calibrated test.</p></div></div>
+        </div>
+
+        <div class="code">
+          <div class="app-bar">
+            <span class="tl a"></span><span class="tl b"></span><span class="tl c"></span>
+            <span class="app-title">quickstart.py</span>
+          </div>
+<pre><span class="k">import</span> topica
+
+df     = topica.datasets.load_gadarian()        <span class="c"># bundled, offline</span>
+corpus = topica.from_dataframe(
+    df, text_col=<span class="s">"open.ended.response"</span>,
+    stopwords=topica.ENGLISH_STOPWORDS,
+)
+
+model = topica.LDA(num_topics=<span class="s">5</span>, seed=<span class="s">42</span>)
+model.fit(corpus)
+<span class="k">print</span>(topica.summary(model))                  <span class="c"># top words</span>
+
+<span class="c"># relate topic prevalence to a covariate</span>
+stm = topica.STM(num_topics=<span class="s">5</span>, seed=<span class="s">42</span>)
+stm.fit(corpus, prevalence, prevalence_names=[<span class="s">"treatment"</span>])
+effect = topica.estimate_effect(draws, prevalence,
+                                feature_names=[<span class="s">"treatment"</span>])</pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SPEED vs R stm -->
+  <section id="speed">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="kicker">Speed · vs R stm</span>
+        <h2>Faster than R <code>stm</code> — on every core it can't use.</h2>
+        <p>The structural topic model is the fit social scientists wait on, and R <code>stm</code> is the field standard. Run to convergence on the same corpus, topica is faster on one core and pulls away on many — because R <code>stm</code> is single-threaded by design, and topica partitions the documents across all your cores.</p>
+      </div>
+
+      <div class="cmp-wrap">
+        <figure class="cmp-panel cmp-pre" style="margin:0">
+          <svg class="cmp-svg" viewBox="0 0 600 214" role="img" aria-label="Wall-clock time to fit a structural topic model to convergence on the 5,000-document poliblog corpus: R stm on one core takes 64.9 seconds; topica on one core takes 23.8 seconds, 2.7 times faster; topica on 16 cores takes 9.3 seconds, 7.0 times faster.">
+            <line class="cmp-base" x1="160" y1="18" x2="160" y2="190"></line>
+            <!-- R stm, 1 core -->
+            <text class="cmp-lab" x="148" y="41" text-anchor="end" font-size="13" font-weight="700">R stm</text>
+            <text class="cmp-sub" x="148" y="56" text-anchor="end" font-size="10.5">single-threaded</text>
+            <rect class="cmp-bar cmp-bar-ref" x="160" y="28" width="360" height="34" rx="5"></rect>
+            <text class="cmp-val" x="528" y="50" font-size="14">64.9&#8202;s</text>
+            <!-- topica, 1 core -->
+            <text class="cmp-lab" x="148" y="101" text-anchor="end" font-size="13" font-weight="700">topica</text>
+            <text class="cmp-sub" x="148" y="116" text-anchor="end" font-size="10.5">1 core</text>
+            <rect class="cmp-bar cmp-bar-topica" x="160" y="88" width="132" height="34" rx="5"></rect>
+            <text x="300" y="110" font-size="14"><tspan class="cmp-val">23.8&#8202;s</tspan><tspan class="cmp-sp" dx="10">2.7× faster</tspan></text>
+            <!-- topica, 16 cores -->
+            <text class="cmp-lab" x="148" y="161" text-anchor="end" font-size="13" font-weight="700">topica</text>
+            <text class="cmp-sub" x="148" y="176" text-anchor="end" font-size="10.5">16 cores</text>
+            <rect class="cmp-bar cmp-bar-topica" x="160" y="148" width="51.6" height="34" rx="5"></rect>
+            <text x="220" y="170" font-size="14"><tspan class="cmp-val">9.3&#8202;s</tspan><tspan class="cmp-sp" dx="10">7.0× faster</tspan></text>
+            <!-- axis note -->
+            <text class="cmp-note" x="160" y="206" font-size="10.5">wall-clock seconds to convergence · lower is better</text>
+          </svg>
+          <figcaption class="cmp-cap">Structural topic model (K=20, ~rating + s(time)) to convergence at emtol 1e-5, spectral start, on a two-socket AMD EPYC 7702; R stm 1.3.8, mean of two repeats. Source: topica paper §6, Table 1.</figcaption>
+        </figure>
+
+        <div class="cmp-side">
+          <div class="lead">5–7×</div>
+          <p>faster than R <code>stm</code> on a 16-core workstation. R <code>stm</code> can't touch your other cores; topica scales the sampler across them.</p>
+          <div class="mini">
+            <div><span class="m-n">2.7×</span><span class="m-t">faster even on a single core</span></div>
+            <div><span class="m-n">¼</span><span class="m-t">the memory — 180&#8202;MB vs 675&#8202;MB at 5,000 docs</span></div>
+            <div><span class="m-n">0</span><span class="m-t">parallel modes in R <code>stm</code> — none exists</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="vs-head">
+        <h3>Same story against the rest of the field.</h3>
+        <span>topica matches the compiled samplers core-for-core, then uses the cores R and the JVM can't.</span>
+      </div>
+      <div class="vs-grid">
+        <div class="vs-card">
+          <span class="lab">vs MALLET · Java LDA</span>
+          <div class="big">13.0s<span class="vs">vs 21.2s</span></div>
+          <p class="cap">A 5,000-document LDA fit on <b>8 threads</b>. topica matches the compiled Java sampler core-for-core and pulls ahead in parallel — with <b>no JVM</b> to start.</p>
+        </div>
+        <div class="vs-card">
+          <span class="lab">vs keyATM · R / C++</span>
+          <div class="big">2.1×<span class="vs">on 8 cores</span></div>
+          <p class="cap">Parity with its C++ sampler single-threaded (22.5s vs 23.0s); <b>1.7× on four cores, 2.1× on eight</b> — through a parallel sweep the R package has no equivalent of.</p>
+        </div>
+      </div>
+
+      <div class="speed-foot">
+        <span>STM · 25,000-doc Congress corpus: 641s → 134s (4.8× on 16 cores)</span>
+        <span>Rust core, no JVM</span>
+        <span>reproduced by scripts in benchmarks/</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- MODELS BROWSER -->
+  <section id="models">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="kicker">The roster · all 39</span>
+        <h2>A periodic table of topic models.</h2>
+        <p>The whole shelf on one screen, grouped by what you bring and what you want — not by inference family. Tap a group to light it up; hover any tile for the one-liner.</p>
+      </div>
+
+      <div class="legend" id="legend" role="group" aria-label="Highlight models by group"></div>
+      <div class="wall" id="wall"></div>
+      <p class="count-note" id="countNote"></p>
+    </div>
+  </section>
+
+  <!-- MANIFESTO -->
+  <section id="manifesto" style="background:var(--surface-2);border-top:1px solid var(--hair);border-bottom:1px solid var(--hair)">
+    <div class="wrap">
+      <div class="sec-head"><span class="kicker">Manifesto</span><h2>Built for the paper, not the demo.</h2></div>
+      <div class="manifesto">
+        <div class="app-bar">
+          <span class="tl a"></span><span class="tl b"></span><span class="tl c"></span>
+          <span class="app-title">cat manifesto.txt</span>
+        </div>
+        <div class="man-body">
+          <p>A topic model is only as good as what you can <span class="hl">defend</span> about it.</p>
+          <p>So topica ships the boring parts that make a finding hold up: every model checked against its <span class="hl">reference implementation</span>, fits that <span class="hl">reproduce</span> from a seed, an error bar next to every estimate, and a straight line from your DataFrame to the effect you report.</p>
+          <p>No JVM to install. No cluster to rent. No black box to apologize for. Open source, Apache-2.0, and made for the questions computational social scientists actually ask.<span class="caret" aria-hidden="true"></span></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FINAL CTA -->
+  <section class="final">
+    <div class="wrap">
+      <span class="kicker">Get it</span>
+      <h2>Install topica.</h2>
+      <p>One wheel, thirty-nine models, and the reporting tools to back them up.</p>
+      <div class="hero-cta">
+        <div class="install">
+          <span class="pfx">$</span><code>pip install topica</code>
+          <button class="copy" id="copy2" aria-label="Copy install command">copy</button>
+        </div>
+        <a class="btn btn-ghost" href="https://github.com/nealcaren/topica">Star on GitHub ★</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div class="foot-brand">
+        <a class="brand" href="#top">top<b>ic</b>a<span class="dot">.</span></a>
+        <p>A fast, all-purpose topic-modeling library for Python, built for computational social scientists.</p>
+      </div>
+      <div class="foot-col">
+        <h5>Install</h5>
+        <a href="https://pypi.org/project/topica/">PyPI</a>
+        <a href="https://nealcaren.github.io/topica/getting-started/quickstart/">Quick start</a>
+        <a href="https://nealcaren.github.io/topica/">Documentation</a>
+      </div>
+      <div class="foot-col">
+        <h5>Learn</h5>
+        <a href="https://nealcaren.github.io/topica/examples/dubois/">Worked examples</a>
+        <a href="https://nealcaren.github.io/topica/guides/models/">Model guide</a>
+        <a href="https://nealcaren.github.io/topica/guides/covariates/">Covariate effects</a>
+      </div>
+      <div class="foot-col">
+        <h5>Source</h5>
+        <a href="https://github.com/nealcaren/topica">GitHub</a>
+        <a href="https://github.com/nealcaren/topica/issues">Issues</a>
+        <a href="https://github.com/nealcaren/topica/blob/main/LICENSE">License</a>
+      </div>
+    </div>
+    <div class="foot-base">
+      <span>© 2026 Neal Caren · Apache-2.0</span>
+      <span><a href="../" style="color:var(--accent-deep)">$ terminal view ↗</a> · <a href="../bins/" style="color:var(--accent-deep)">words into bins ↗</a></span>
+      <span>Rust core · PyO3 · NumPy-native</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  // ---- theme toggle: OS default, explicit override persisted ----
+  var root=document.documentElement, KEY="topica-theme";
+  try{var saved=localStorage.getItem(KEY); if(saved) root.setAttribute("data-theme",saved);}catch(e){}
+  document.getElementById("theme").addEventListener("click",function(){
+    var cur=root.getAttribute("data-theme");
+    if(!cur){cur=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}
+    var next=cur==="dark"?"light":"dark";
+    root.setAttribute("data-theme",next);
+    try{localStorage.setItem(KEY,next);}catch(e){}
+  });
+
+  // ---- copy install ----
+  function wireCopy(btn){
+    if(!btn) return;
+    btn.addEventListener("click",function(){
+      var t="pip install topica";
+      (navigator.clipboard&&navigator.clipboard.writeText(t)||Promise.reject()).then(done,function(){
+        var ta=document.createElement("textarea");ta.value=t;document.body.appendChild(ta);ta.select();
+        try{document.execCommand("copy");done();}catch(e){}document.body.removeChild(ta);
+      });
+      function done(){var o=btn.textContent;btn.textContent="copied ✓";btn.classList.add("ok");
+        setTimeout(function(){btn.textContent=o;btn.classList.remove("ok");},1600);}
+    });
+  }
+  wireCopy(document.getElementById("copy"));
+  wireCopy(document.getElementById("copy2"));
+
+  // ---- hero highlighter swipe on load ----
+  requestAnimationFrame(function(){setTimeout(function(){
+    document.querySelectorAll(".hl-draw").forEach(function(el,i){setTimeout(function(){el.classList.add("on");},120*i);});
+  },260);});
+
+  // ---- reveal the figure's error bars when it scrolls into view ----
+  var figRows=[].slice.call(document.querySelectorAll(".fig-row"));
+  var reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function showFig(){figRows.forEach(function(r,i){setTimeout(function(){r.classList.remove("pre");},reduce?0:120*i);});}
+  if(figRows.length){
+    if(reduce||!("IntersectionObserver" in window)){showFig();}
+    else{
+      var io=new IntersectionObserver(function(es){
+        es.forEach(function(e){if(e.isIntersecting){showFig();io.disconnect();}});
+      },{threshold:.35});
+      io.observe(document.querySelector(".fig-panel"));
+    }
+  }
+
+  // ---- grow the topica-vs-stm bars when the chart scrolls into view ----
+  var cmp=document.querySelector(".cmp-panel");
+  if(cmp){
+    if(reduce||!("IntersectionObserver" in window)){cmp.classList.remove("cmp-pre");}
+    else{
+      var io2=new IntersectionObserver(function(es){
+        es.forEach(function(e){if(e.isIntersecting){cmp.classList.remove("cmp-pre");io2.disconnect();}});
+      },{threshold:.4});
+      io2.observe(cmp);
+    }
+  }
+
+  // ---- models wall (real roster, all 39) ----
+  // group -> [label, categorical color]. Amber stays the brand; the rest are a
+  // muted, equal-weight set so the wall reads as a designed catalog, not a rainbow.
+  var GROUPS=[
+    ["General-purpose","#F5B93A"],
+    ["Covariates & structure","#EC7A5C"],
+    ["Guided & supervised","#5EB971"],
+    ["Short text","#35B7B0"],
+    ["Dynamic & hierarchical","#9B85E8"],
+    ["Embedding-based","#5B8DEF"],
+    ["Ideal point","#E06CA6"],
+    ["LLM-based","#8C93A6"]
+  ];
+  var GC={}; GROUPS.forEach(function(g){GC[g[0]]=g[1];});
+  var M=[
+    ["LDA","General-purpose","Classic latent Dirichlet allocation via a fast SparseLDA collapsed-Gibbs sampler."],
+    ["CTM","General-purpose","Correlated topic model: a logistic-normal prior that lets topics co-occur."],
+    ["ProdLDA","General-purpose","Product-of-experts LDA (AVITM) for sharper topics; a hand-coded VAE."],
+    ["HDP","General-purpose","Hierarchical Dirichlet process: infers the number of topics from the data."],
+    ["NMF","General-purpose","Non-negative matrix factorization of the document-term matrix."],
+    ["LSA","General-purpose","Latent semantic analysis: a truncated SVD of the weighted term matrix."],
+    ["AnchorLDA","General-purpose","Anchor-words spectral recovery (Arora 2013): deterministic, Gibbs-free."],
+    ["TensorLDA","General-purpose","Online tensor LDA: a deterministic method-of-moments topic model."],
+    ["STM","Covariates & structure","Structural topic model: relate prevalence and content to covariates."],
+    ["STS","Covariates & structure","Structural topic-and-sentiment model over document metadata."],
+    ["SAGE","Covariates & structure","Sparse additive generative model: one topic worded differently across groups."],
+    ["ECTM","Covariates & structure","Evolving content model: content covariates that drift across time."],
+    ["DMR","Covariates & structure","Dirichlet-multinomial regression: a metadata prior on topic proportions."],
+    ["GDMR","Covariates & structure","Generalized DMR with a smooth prior over continuous covariates."],
+    ["NarrativeTM","Covariates & structure","Captures how topic prevalence shifts across a document's narrative."],
+    ["KeyATM","Guided & supervised","Keyword-assisted topics: anchor named topics with a few seed words."],
+    ["SeededLDA","Guided & supervised","Seeded LDA: steer named topics toward supplied seed words."],
+    ["LabeledLDA","Guided & supervised","Labeled LDA: each document label is a topic."],
+    ["SupervisedLDA","Guided & supervised","Topics shaped to predict a per-document real-valued response."],
+    ["GSDMM","Short text","Gibbs-sampling Dirichlet mixture: one topic per short document."],
+    ["PT","Short text","Pseudo-document topic model: pool short texts into pseudo-documents."],
+    ["DTM","Dynamic & hierarchical","Dynamic topic model: word distributions drift across time slices."],
+    ["DETM","Dynamic & hierarchical","Dynamic embedded topic model: embedding-factored topics over time."],
+    ["HLDA","Dynamic & hierarchical","Hierarchical LDA (nested CRP): a learned tree of super- and sub-topics."],
+    ["PA","Dynamic & hierarchical","Pachinko allocation: a DAG of super- and sub-topics."],
+    ["BERTopic","Embedding-based","Cluster document embeddings; label topics by class-based TF-IDF."],
+    ["Top2Vec","Embedding-based","Topics as dense regions in a joint document-word embedding space."],
+    ["ETM","Embedding-based","Embedded topic model: topic-word distributions through word embeddings."],
+    ["IdealPointTM","Embedding-based","Topic model with a latent ideal-point head per author."],
+    ["IdealPointSentenceTM","Embedding-based","Continuous ideal points over sentence/document embeddings."],
+    ["FASTopic","Embedding-based","Topics from optimal-transport plans between document/topic/word embeddings."],
+    ["EmbeddingLDA","Embedding-based","Seeded LDA whose seeds expand with embedding neighbors."],
+    ["CombinedTM","Embedding-based","Contextualized ProdLDA: bag of words plus a document embedding."],
+    ["ZeroShotTM","Embedding-based","Contextualized ProdLDA from the embedding alone; cross-lingual."],
+    ["InfoCTM","Embedding-based","Cross-lingual: two ProdLDA models aligned by a bilingual dictionary."],
+    ["Wordfish","Ideal point","Poisson scaling (Slapin & Proksch 2008): unsupervised 1-D ideal points."],
+    ["TBIP","Ideal point","Text-Based Ideal Points (Vafa, Naidu & Blei 2020)."],
+    ["PartyEmbeddings","Ideal point","Party embeddings (Rheault & Cochrane 2020): a PV-DM model."],
+    ["TopicGPT","LLM-based","LLM-driven discovery: prompt a model to build and assign a taxonomy."]
+  ];
+  var wall=document.getElementById("wall"), legend=document.getElementById("legend"), note=document.getElementById("countNote");
+  var active="All";
+
+  function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;");}
+
+  // build one block per group, all tiles visible
+  var idx=0;
+  GROUPS.forEach(function(g){
+    var label=g[0], color=g[1];
+    var items=M.filter(function(m){return m[1]===label;});
+    var block=document.createElement("div");
+    block.className="block";block.dataset.group=label;block.style.setProperty("--gc",color);
+    var tiles='';
+    items.forEach(function(m){
+      idx++;
+      var n=(idx<10?"0":"")+idx;
+      tiles+='<div class="tile pre" data-group="'+label+'" title="'+esc(m[2])+'">'+
+        '<span class="idx">'+n+'</span>'+
+        '<div class="mname">'+esc(m[0])+'</div>'+
+        '<p class="msum">'+esc(m[2])+'</p></div>';
+    });
+    block.innerHTML='<div class="block-head"><span class="gname">'+esc(label)+
+      '</span><span class="gcount">'+items.length+' model'+(items.length>1?'s':'')+'</span></div>'+
+      '<div class="tiles">'+tiles+'</div>';
+    wall.appendChild(block);
+  });
+
+  function setActive(label){
+    active=label;
+    var filtered=label!=="All";
+    wall.classList.toggle("filtered",filtered);
+    [].forEach.call(wall.querySelectorAll(".tile"),function(t){
+      t.classList.toggle("hot",filtered&&t.dataset.group===label);
+    });
+    [].forEach.call(wall.querySelectorAll(".block"),function(b){
+      b.classList.toggle("cold",filtered&&b.dataset.group!==label);
+    });
+    [].forEach.call(legend.children,function(c){c.setAttribute("aria-pressed",c.dataset.label===label?"true":"false");});
+    note.textContent=filtered
+      ? M.filter(function(m){return m[1]===label;}).length+" of "+M.length+" models · "+label
+      : "All "+M.length+" models, across "+GROUPS.length+" families";
+  }
+
+  function mkChip(label,color,isAll){
+    var b=document.createElement("button");b.className="chip";b.dataset.label=label;
+    if(isAll)b.setAttribute("data-all","");
+    if(color)b.style.setProperty("--gc",color);
+    b.innerHTML=(color?'<span class="sw"></span>':'')+esc(isAll?"All 39":label);
+    b.setAttribute("aria-pressed",label===active?"true":"false");
+    b.addEventListener("click",function(){setActive(active===label&&!isAll?"All":label);});
+    return b;
+  }
+  legend.appendChild(mkChip("All",null,true));
+  GROUPS.forEach(function(g){legend.appendChild(mkChip(g[0],g[1],false));});
+  setActive("All");
+
+  // staggered reveal on load (respects reduced-motion via the CSS media query)
+  var tiles=[].slice.call(wall.querySelectorAll(".tile"));
+  if(matchMedia("(prefers-reduced-motion: reduce)").matches){
+    tiles.forEach(function(t){t.classList.remove("pre");t.classList.add("in");});
+  }else{
+    tiles.forEach(function(t,i){setTimeout(function(){t.classList.remove("pre");t.classList.add("in");},260+i*22);});
+  }
+})();
+</script>
+
+<!-- HERO: words-into-bins animation -->
+<script>
+(function(){
+  var docEl=document.getElementById("doc");
+  var binsEl=document.getElementById("bins");
+  if(!docEl||!binsEl) return;
+  var reduceQ=matchMedia("(prefers-reduced-motion: reduce)");
+  var root=document.documentElement;
+
+  var TOPICS=[
+    {name:"people · country",     v:"--t0"},
+    {name:"law · policy",         v:"--t1"},
+    {name:"jobs · security",      v:"--t2"},
+    {name:"family · worry",       v:"--t3"},
+    {name:"immigration · legal",  v:"--t4"}
+  ];
+  function tcol(i){return getComputedStyle(root).getPropertyValue(TOPICS[i].v).trim();}
+
+  // three real-style open-ended immigration responses. t = topic index, -1 = stopword.
+  var DOC=[
+    {label:"response 01", toks:[
+      ["Illegal",4],["immigrants",4],["take",-1],["our",-1],["jobs",2],["."],
+      ["The",-1],["jobs",2],["should",-1],["go",-1],["to",-1],["americans",2],["."],
+      ["I",-1],["worry",3],["about",-1],["our",-1],["security",2],["."]
+    ]},
+    {label:"response 02", toks:[
+      ["People",0],["come",0],["here",-1],["and",-1],["do",-1],["not",-1],["learn",-1],["english",0],["."],
+      ["This",-1],["country",0],["has",-1],["laws",1],[",",null],["and",-1],["the",-1],["law",1],["must",-1],["deport",1],["people",0],["."],
+      ["They",-1],["are",-1],["illegal",4],["."]
+    ]},
+    {label:"response 03", toks:[
+      ["I",-1],["worry",3],["about",-1],["the",-1],["children",3],["."],
+      ["The",-1],["racism",3],["worries",3],["me",-1],["."],
+      ["Immigration",4],["needs",-1],["a",-1],["legal",4],["process",-1],["for",-1],["immigrants",4],["who",-1],["work",0],["."]
+    ]}
+  ];
+  var PUNCT={".":1,",":1,";":1};
+
+  var statusEl=document.getElementById("status");
+  var playBtn=document.getElementById("play");
+  var replayBtn=document.getElementById("replay");
+  var capEl=document.getElementById("cap");
+
+  var CELLS=[];
+  DOC.forEach(function(r){
+    var p=document.createElement("p"); p.className="resp";
+    var lab=document.createElement("span"); lab.className="rl"; lab.textContent=r.label; p.appendChild(lab);
+    r.toks.forEach(function(tk){
+      var word=tk[0], t=tk.length>1?tk[1]:null;
+      if(t===null || PUNCT[word]){ p.appendChild(document.createTextNode(word)); p.appendChild(document.createTextNode(" ")); return; }
+      var sp=document.createElement("span");
+      sp.className="w"+(t===-1?" stop":""); sp.textContent=word;
+      p.appendChild(sp); p.appendChild(document.createTextNode(" "));
+      CELLS.push({el:sp,w:word,t:t});
+    });
+    docEl.appendChild(p);
+  });
+  var note=document.createElement("p"); note.className="doc-note";
+  note.innerHTML='<span><span class="kb keep"></span> kept &amp; binned</span><span><span class="kb"></span> filler, pruned</span>';
+  docEl.appendChild(note);
+
+  var BINROWS=[];
+  TOPICS.forEach(function(tp,i){
+    var b=document.createElement("div"); b.className="bin"; b.style.setProperty("--bc",tcol(i));
+    b.dataset.bin=i;
+    b.innerHTML='<div class="bin-h"><span class="sw"></span><span class="nm">'+tp.name+'</span><span class="ct">0</span></div>'+
+                '<div class="bin-empty">empty</div><div class="tally"></div>';
+    binsEl.appendChild(b);
+    BINROWS.push({el:b,ct:b.querySelector(".ct"),empty:b.querySelector(".bin-empty"),tally:b.querySelector(".tally"),order:[],map:{},max:0,total:0});
+    b.addEventListener("mouseenter",function(){ if(done) lite(i); });
+    b.addEventListener("mouseleave",function(){ if(done) lite(-1); });
+    b.addEventListener("click",function(){ if(done) lite(pinned===i?-1:i,true); });
+  });
+
+  var token=0, done=false, pinned=-1, speed=1;
+
+  function setSpeed(s){
+    speed=s;
+    document.getElementById("sp1").setAttribute("aria-pressed",s===1?"true":"false");
+    document.getElementById("sp2").setAttribute("aria-pressed",s===2?"true":"false");
+  }
+  document.getElementById("sp1").addEventListener("click",function(){setSpeed(1);});
+  document.getElementById("sp2").addEventListener("click",function(){setSpeed(2);});
+
+  function sleep(ms){return new Promise(function(r){setTimeout(r,ms/speed);});}
+  function status(head,html,col){
+    statusEl.innerHTML='<span class="head">'+head+'</span><span class="act">'+html+'</span>';
+    statusEl.style.setProperty("--stcol",col||"var(--accent)");
+  }
+
+  function resetAll(){
+    token++; done=false; pinned=-1;
+    document.querySelectorAll(".flyer,.drop-ghost").forEach(function(n){n.remove();});
+    CELLS.forEach(function(c){c.el.className="w"+(c.t===-1?" stop":"");c.el.style.removeProperty("--wc");});
+    BINROWS.forEach(function(b){
+      b.order=[];b.map={};b.max=0;b.total=0;b.tally.innerHTML="";
+      b.ct.textContent="0";b.empty.style.display="";b.el.classList.remove("catch","lit","mute");
+    });
+    capEl.hidden=true; capEl.innerHTML="";
+  }
+
+  function commit(i,word){
+    var b=BINROWS[i], key=word.toLowerCase();
+    b.empty.style.display="none"; b.total++; b.ct.textContent=b.total;
+    var row=b.map[key];
+    if(!row){
+      var el=document.createElement("div"); el.className="row";
+      el.innerHTML='<span class="bar"></span><span class="rw">'+word+'</span><span class="rn">1</span>';
+      row={el:el,bar:el.querySelector(".bar"),rn:el.querySelector(".rn"),count:1};
+      b.map[key]=row; b.order.push(key); b.tally.appendChild(el);
+    }else{ row.count++; row.rn.textContent=row.count; }
+    if(row.count>b.max) b.max=row.count;
+    b.order.sort(function(a,c){ return b.map[c].count-b.map[a].count; });
+    b.order.forEach(function(k){ b.tally.appendChild(b.map[k].el); });
+    b.order.forEach(function(k){ var rw=b.map[k]; rw.bar.style.width=Math.round(rw.count/b.max*100)+"%"; });
+    row.el.classList.remove("pop"); void row.el.offsetWidth; row.el.classList.add("pop");
+    b.el.classList.remove("catch"); void b.el.offsetWidth; b.el.classList.add("catch");
+    setTimeout(function(){b.el.classList.remove("catch");},260);
+  }
+
+  function fly(cell){
+    return new Promise(function(res){
+      var i=cell.t, color=tcol(i);
+      var from=cell.el.getBoundingClientRect();
+      var bin=BINROWS[i].el, br=bin.getBoundingClientRect();
+      cell.el.style.setProperty("--wc",color);
+      cell.el.classList.remove("reading"); cell.el.classList.add("sent");
+      if(reduceQ.matches){ commit(i,cell.w); return res(); }
+      var fl=document.createElement("span"); fl.className="flyer"; fl.textContent=cell.w;
+      fl.style.setProperty("--fc",color);
+      fl.style.left=from.left+"px"; fl.style.top=from.top+"px";
+      document.body.appendChild(fl);
+      var fr=fl.getBoundingClientRect();
+      var tx=(br.left+br.width/2)-(fr.left+fr.width/2);
+      var ty=(br.top+22)-(fr.top+fr.height/2);
+      var dur=360/speed, lift=Math.min(-40,ty*0.35-70);
+      var anim=fl.animate([
+        {transform:"translate(0px,0px) scale(1)",opacity:1},
+        {transform:"translate("+(tx*0.5)+"px,"+lift+"px) scale(1.08)",opacity:1,offset:.55},
+        {transform:"translate("+tx+"px,"+ty+"px) scale(.9)",opacity:.92}
+      ],{duration:dur,easing:"cubic-bezier(.34,.02,.24,1)",fill:"forwards"});
+      anim.onfinish=function(){ fl.remove(); commit(i,cell.w); res(); };
+    });
+  }
+
+  function drop(cell){
+    return new Promise(function(res){
+      if(reduceQ.matches){ cell.el.classList.add("dropped"); return res(); }
+      var from=cell.el.getBoundingClientRect();
+      var g=document.createElement("span"); g.className="drop-ghost"; g.textContent=cell.w;
+      g.style.left=from.left+"px"; g.style.top=from.top+"px";
+      document.body.appendChild(g);
+      cell.el.classList.add("dropped");
+      var a=g.animate([
+        {transform:"translateY(0) rotate(0)",opacity:.5},
+        {transform:"translateY(26px) rotate(6deg)",opacity:0}
+      ],{duration:380/speed,easing:"ease-in",fill:"forwards"});
+      a.onfinish=function(){g.remove();res();};
+    });
+  }
+
+  async function run(){
+    resetAll();
+    var tok=token; playBtn.disabled=true;
+    var kept=0;
+    for(var i=0;i<CELLS.length;i++){
+      if(tok!==token) return;
+      var cell=CELLS[i];
+      cell.el.classList.add("reading");
+      if(cell.t===-1){
+        status("pruning","dropping filler — <b style=\"color:var(--faint)\">"+cell.w+"</b>","var(--faint)");
+        await sleep(reduceQ.matches?0:70);
+        if(tok!==token) return;
+        drop(cell);
+        await sleep(reduceQ.matches?0:60);
+      }else{
+        kept++;
+        status("binning","<b>"+cell.w+"</b> → "+TOPICS[cell.t].name,tcol(cell.t));
+        statusEl.style.setProperty("--stcol",tcol(cell.t));
+        await sleep(reduceQ.matches?0:90);
+        if(tok!==token) return;
+        await fly(cell);
+        await sleep(reduceQ.matches?0:40);
+      }
+      if(tok!==token) return;
+    }
+    if(tok!==token) return;
+    done=true; playBtn.disabled=false;
+    status("done","sorted <b>"+kept+"</b> words into <b>5</b> bins — hover a bin to trace it back","var(--accent)");
+    var lead=BINROWS.map(function(b,i){return {i:i,n:b.total};}).sort(function(a,c){return c.n-a.n;})[0];
+    capEl.hidden=false;
+    capEl.innerHTML='<span class="lead">'+kept+' content words</span> binned · <b>'+(CELLS.length-kept)+
+      '</b> stopwords pruned · biggest topic: <b style="color:'+tcol(lead.i)+'">'+TOPICS[lead.i].name+'</b> ('+lead.n+' words)';
+    replayBtn.hidden=false;
+    playBtn.textContent="▶ Sort again";
+  }
+
+  function lite(i,pin){
+    if(pin!==undefined) pinned = (i===-1?-1:(pinned===i?-1:i));
+    var active = (pinned!==-1)?pinned:i;
+    BINROWS.forEach(function(b,bi){
+      b.el.classList.toggle("lit",active!==-1&&bi===active);
+      b.el.classList.toggle("mute",active!==-1&&bi!==active);
+    });
+    CELLS.forEach(function(c){
+      if(c.t===-1) return;
+      c.el.classList.toggle("dim",active!==-1&&c.t!==active);
+    });
+  }
+
+  playBtn.addEventListener("click",run);
+  replayBtn.addEventListener("click",run);
+
+  // auto-play once when the hero is in view (after the headline highlighter draws)
+  if(reduceQ.matches){ run(); }
+  else{
+    var started=false;
+    function kick(){ if(started) return; started=true; setTimeout(run,900); }
+    if("IntersectionObserver" in window){
+      var io=new IntersectionObserver(function(es){
+        es.forEach(function(e){ if(e.isIntersecting){ kick(); io.disconnect(); } });
+      },{threshold:.25});
+      io.observe(document.querySelector(".binhero"));
+    } else { kick(); }
+  }
+})();
+</script>
+</body>
+</html>
