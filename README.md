@@ -19,3 +19,14 @@ requests):
 
 The project's documentation lives separately at
 <https://nealcaren.github.io/topica/>.
+
+## Check the site
+
+The browser regression suite loads every page, exercises the interactive
+controls, and fails on JavaScript console errors:
+
+```sh
+npm install
+npx playwright install chromium
+npm test
+```
