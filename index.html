@@ -122,11 +122,6 @@
     <div class="bar">
       <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
       <span class="title">topica — python3 — ~/research</span>
-      <span class="ctrl">
-        <button id="skip">skip &#9193;</button>
-        <button id="replay">replay &#8635;</button>
-        <a class="ctrl-a" href="site/">full site &#8599;</a>
-      </span>
     </div>
     <div class="screen" id="screen" tabindex="0" role="log" aria-live="polite"></div>
   </main>
@@ -151,10 +146,10 @@
   var SESSION = [
     {c:"sh",  t:"pip install topica"},
     {c:"sys", t:"Collecting topica ... building wheel"},
-    {c:"ok",  t:"✓ Successfully installed topica-0.34.0"},
+    {c:"ok",  t:"✓ Successfully installed topica-0.55.0"},
     {c:"gap"},
     {c:"sh",  t:"python"},
-    {c:"dim", t:"Python 3.13 · topica 0.34.0 · NumPy + pandas, no JVM"},
+    {c:"dim", t:"Python 3.13 · topica 0.55.0 · NumPy + pandas, no JVM"},
     {c:"py",  t:"import topica"},
     {c:"py",  t:"df = topica.datasets.load_gadarian()"},
     {c:"py",  t:"corpus = topica.from_dataframe(df, text_col=\"open.ended.response\","},
@@ -287,11 +282,31 @@
     {c:"py",  t:"ctm = topica.CTM(num_topics=5, seed=42); ctm.fit(corpus)", tail:"   # correlated topics"},
     {c:"gap"},
 
+    {c:"cmt", t:"# 10 · a portable record of the run — provenance you can reload and verify"},
+    {c:"py",  t:"rec = topica.record_fit(final, corpus, iters=1000,"},
+    {c:"pyc", t:"                        content_fingerprint=True,"},
+    {c:"pyc", t:"                        diagnostics=[\"coherence\", \"exclusivity\"])"},
+    {c:"py",  t:"rec"},
+    {c:"res", t:"AnalysisManifest(model='LDA', privacy='minimal', decisions=0, diagnostics=2)", pause:400},
+    {c:"fig", pause:180, html:true, t:'  <span class="ax">version    </span>  topica 0.55.0 · LDA · k=7 · <span class="mk">seed-reproducible</span>'},
+    {c:"fig", html:true, t:'  <span class="ax">replay     </span>  seed=42 · num_threads=1'},
+    {c:"fig", html:true, t:'  <span class="ax">fingerprint</span>  topic-word 6948db… · doc-topic 2c4f22…'},
+    {c:"fig", html:true, t:'  <span class="ax">evidence   </span>  coherence -74.7 · exclusivity 9.7'},
+    {c:"gap"},
+    {c:"py",  t:"rec.save(\"gadarian_run.topica.json\")", tail:"   # ~2 KB, no corpus text"},
+    {c:"py",  t:"back = topica.AnalysisManifest.load(\"gadarian_run.topica.json\")"},
+    {c:"py",  t:"back.verify(corpus=corpus, model=final)", tail:"   # does the fit still hold?"},
+    {c:"fig", pause:220, html:true, t:'  environment     <span class="sig">✓ exact</span>'},
+    {c:"fig", html:true, t:'  corpus counts   <span class="sig">✓ exact</span>'},
+    {c:"fig", html:true, t:'  corpus content  <span class="sig">✓ exact</span>'},
+    {c:"fig", html:true, t:'  topic–word      <span class="sig">✓ exact</span>'},
+    {c:"fig", html:true, t:'  doc–topic       <span class="sig">✓ exact</span>'},
+    {c:"cmt", t:"#  one JSON file pins the model, settings, corpus identity, and replay conditions"},
+    {c:"gap"},
+
     {c:"py",  t:"len(topica.list_models())"},
     {c:"res", t:"42", pause:350},
     {c:"gap"},
-    {c:"cmt", t:"# that's the tour — 42 models, one import."},
-    {c:"fig", html:true, pause:200, t:'  try it on your own text:  <span class="mk">pip install topica</span>   ·   <a href="https://nealcaren.github.io/topica/">read the docs →</a>'},
     {c:"end"}
   ];
   var PROMPT = {sh:"$ ", py:">>> ", pyc:"... ", cmt:">>> ", end:"$ "};
@@ -369,13 +384,6 @@
       }
     }
   }
-
-  document.getElementById("skip").addEventListener("click", function(){
-    fast = true; run();          // render the whole session instantly
-  });
-  document.getElementById("replay").addEventListener("click", function(){
-    fast = false; run();         // play it out again
-  });
 
   // copy install
   var copy = document.getElementById("copy");

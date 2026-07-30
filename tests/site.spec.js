@@ -11,9 +11,12 @@ function trackPageErrors(page) {
 
 test("terminal tour renders without browser errors", async ({ page }) => {
   const errors = trackPageErrors(page);
+  // reduced motion makes the replayed session render instantly (no per-char
+  // typing, no sleeps), so the whole tour is on screen without a skip button.
+  await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/");
-  await page.locator("#skip").click();
-  await expect(page.locator("#screen")).toContainText("that's the tour");
+  await expect(page.locator("#screen")).toContainText("AnalysisManifest");
+  await expect(page.locator("#screen")).toContainText("list_models");
   expect(errors).toEqual([]);
 });
 
