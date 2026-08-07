@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>topica — $</title>
-<meta name="description" content="topica in a terminal: install, fit a topic model, and read covariate effects with confidence intervals. A real session, replayed.">
+<title>topica — topic modeling for Python</title>
+<meta name="description" content="Topic modeling for Python: fast classical, structural, and embedding models with reproducible diagnostics and measurable uncertainty.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%230A0806'/%3E%3Ctext x='2' y='12' font-family='monospace' font-size='11' fill='%23FFB84D'%3E%24_%3C/text%3E%3C/svg%3E">
 <style>
   /* A committed single world: an amber-phosphor CRT. No light theme — a
@@ -91,6 +91,17 @@
   .c-fig a{color:var(--amber);text-decoration:underline;text-underline-offset:3px}
   .c-fig a:hover{color:var(--amber-hi)}
   .tail{color:var(--dim)}
+  .welcome{white-space:normal;max-width:680px;padding:clamp(8px,2vw,24px) 0}
+  .welcome .kicker{color:var(--amber);font-size:12px;font-weight:700;letter-spacing:.1em}
+  .welcome h1{margin:10px 0 12px;color:var(--amber-hi);font-size:clamp(25px,4vw,42px);
+    line-height:1.12;letter-spacing:-.04em;font-weight:700}
+  .welcome p{margin:0;color:var(--fg);max-width:620px}
+  .welcome .proof{margin:20px 0 0;color:var(--dim);font-size:13px}
+  .welcome .actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:24px}
+  .welcome .action{background:#151009;border:1px solid var(--faint);color:var(--fg);
+    font-family:var(--mono);font-size:13px;padding:9px 12px;border-radius:7px;cursor:pointer}
+  .welcome .action.primary{border-color:var(--amber);color:var(--amber-hi)}
+  .welcome .action:hover{color:var(--amber);border-color:var(--amber)}
   .cursor{display:inline-block;width:.62em;height:1.05em;background:var(--amber);
     vertical-align:-2px;margin-left:1px;box-shadow:0 0 6px rgba(255,184,77,.7);animation:blink 1.05s steps(1) infinite}
   @keyframes blink{50%{opacity:0}}
@@ -122,8 +133,12 @@
     <div class="bar">
       <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
       <span class="title">topica — python3 — ~/research</span>
+      <span class="ctrl">
+        <button id="runHighlights" type="button">run highlights</button>
+        <button id="showFull" type="button">show full session</button>
+      </span>
     </div>
-    <div class="screen" id="screen" tabindex="0" role="log" aria-live="polite"></div>
+    <div class="screen" id="screen" tabindex="0" role="region" aria-live="polite"></div>
   </main>
 
   <div class="foot">
@@ -209,7 +224,7 @@
     {c:"fig", html:true, t:'   k= 4  <span class="bar-f">████████████████</span><span class="bar-e">░░░░</span>  0.56'},
     {c:"fig", html:true, t:'   k= 5  <span class="bar-f">█████████████████</span><span class="bar-e">░░░</span>  0.58'},
     {c:"fig", html:true, t:'   k= 6  <span class="bar-f">██████████████████</span><span class="bar-e">░░</span>  0.60'},
-    {c:"fig", html:true, t:'   k= 7  <span class="bar-f">████████████████████</span>  0.62  <span class="mk">← best</span>'},
+    {c:"fig", html:true, t:'   k= 7  <span class="bar-f">████████████████████</span>  0.62  <span class="mk">← diagnostic knee</span>'},
     {c:"fig", html:true, t:'   k= 8  <span class="bar-f">█████████████████</span><span class="bar-e">░░░</span>  0.59'},
     {c:"fig", html:true, t:'   k= 9  <span class="bar-f">████████████████</span><span class="bar-e">░░░░</span>  0.56'},
     {c:"fig", html:true, t:'   k=10  <span class="bar-f">███████████████</span><span class="bar-e">░░░░░</span>  0.54'},
@@ -316,6 +331,35 @@
     {c:"gap"},
     {c:"end"}
   ];
+  // The landing-page tour is deliberately short. The full, reproducible
+  // session remains available for visitors who want to inspect every step.
+  var HIGHLIGHTS = [
+    {c:"sh",  t:"pip install topica"},
+    {c:"sys", t:"Collecting topica ... building wheel"},
+    {c:"ok",  t:"✓ Successfully installed topica-0.55.0"},
+    {c:"gap"},
+    {c:"dim", t:"Topic modeling for Python — classical, structural, and embedding models"},
+    {c:"dim", t:"Rust core · no JVM · seeded, reproducible fits"},
+    {c:"gap"},
+    {c:"cmt", t:"# fit a topic model and inspect the word patterns"},
+    {c:"py",  t:"model = topica.LDA(num_topics=5, seed=42)"},
+    {c:"py",  t:"model.fit(corpus)", tail:"   # ~160 ms, single core"},
+    {c:"res", t:"  jobs, security    jobs americans illegals security welfare"},
+    {c:"res", t:"  immigration       illegal immigrants immigration legal need"},
+    {c:"gap"},
+    {c:"cmt", t:"# measure a covariate effect, with a 95% confidence interval"},
+    {c:"py",  t:"eff = topica.estimate_effect(draws, X, feature_names=[\"treatment\"])"},
+    {c:"fig", html:true, t:'  jobs, security  <span class="sig">               ┊      ├──────●──────┤   </span>  <span class="sig">+0.14 *</span>'},
+    {c:"cmt", t:"# measurable uncertainty: ● estimate  ├─┤ 95% CI"},
+    {c:"gap"},
+    {c:"cmt", t:"# compare plausible topic counts; diagnostics inform the decision"},
+    {c:"fig", html:true, t:'  k= 5  <span class="bar-f">█████████████████</span><span class="bar-e">░░░</span>  0.58'},
+    {c:"fig", html:true, t:'  k= 7  <span class="bar-f">████████████████████</span>  0.62  <span class="mk">← diagnostic knee</span>'},
+    {c:"gap"},
+    {c:"cmt", t:"# one library, many approaches"},
+    {c:"res", t:"LDA · STM · KeyATM · BERTopic · Wordfish · 46 models"},
+    {c:"end"}
+  ];
   var PROMPT = {sh:"$ ", py:">>> ", pyc:"... ", cmt:">>> ", end:"$ "};
   var TYPED  = {sh:1, py:1, pyc:1, cmt:1};
 
@@ -367,20 +411,36 @@
     atBottom();
   }
 
-  async function run(){
+  function showWelcome(){
+    ++token; cursor = null;
+    screen.innerHTML = '<section class="welcome">'
+      + '<div class="kicker">TOPICA / PYTHON</div>'
+      + '<h1>Topic modeling for Python.</h1>'
+      + '<p>Fit classical, structural, and embedding models in one library—then evaluate them with reproducible diagnostics and measurable uncertainty.</p>'
+      + '<div class="proof">46 models · Rust core · no JVM · seeded, reproducible fits</div>'
+      + '<div class="actions">'
+      + '<button class="action primary" type="button" data-action="highlights">$ run highlights</button>'
+      + '<button class="action" type="button" data-action="full">$ show full session</button>'
+      + '</div></section>';
+    screen.scrollTop = 0;
+  }
+
+  async function run(lines, instantly){
     var tok = ++token;
+    fast = !!instantly;
     screen.innerHTML = "";
     cursor = newCursor();
     typedCount = 0;
-    for(var i=0;i<SESSION.length;i++){
+    for(var i=0;i<lines.length;i++){
       if(tok!==token) return;
-      var line = SESSION[i];
+      var line = lines[i];
       if(line.c==="gap"){ screen.appendChild(document.createElement("br")); atBottom();
         if(!reduce && !fast) await sleep(120); continue; }
       if(line.c==="end"){
         var d=document.createElement("div"); d.className="line";
         var ps=document.createElement("span"); ps.className="p-sh"; ps.textContent="$ ";
         d.appendChild(ps); d.appendChild(cursor); screen.appendChild(d); atBottom();
+        fast = false;
         return;
       }
       await typeLine(line, tok);
@@ -390,7 +450,16 @@
         await sleep(base + (line.pause||0) + Math.random()*(typedCount < 4 ? 90 : 42));
       }
     }
+    fast = false;
   }
+
+  document.getElementById("runHighlights").addEventListener("click", function(){ run(HIGHLIGHTS, false); });
+  document.getElementById("showFull").addEventListener("click", function(){ run(SESSION, true); });
+  screen.addEventListener("click", function(event){
+    var action = event.target.getAttribute("data-action");
+    if(action === "highlights") run(HIGHLIGHTS, false);
+    if(action === "full") run(SESSION, true);
+  });
 
   // copy install
   var copy = document.getElementById("copy");
@@ -404,7 +473,7 @@
       setTimeout(function(){copy.textContent=o;copy.classList.remove("ok");},1500);}
   });
 
-  run();
+  showWelcome();
 })();
 </script>
 </body>

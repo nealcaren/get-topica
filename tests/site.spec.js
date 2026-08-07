@@ -9,12 +9,14 @@ function trackPageErrors(page) {
   return errors;
 }
 
-test("terminal tour renders without browser errors", async ({ page }) => {
+test("terminal landing page introduces the package and its full session renders without browser errors", async ({ page }) => {
   const errors = trackPageErrors(page);
-  // reduced motion makes the replayed session render instantly (no per-char
-  // typing, no sleeps), so the whole tour is on screen without a skip button.
+  // Reduced motion makes the selected replay render instantly (no per-char
+  // typing, no sleeps).
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/");
+  await expect(page.locator("#screen")).toContainText("Topic modeling for Python");
+  await page.locator("#showFull").click();
   await expect(page.locator("#screen")).toContainText("AnalysisManifest");
   await expect(page.locator("#screen")).toContainText("list_models");
   expect(errors).toEqual([]);
